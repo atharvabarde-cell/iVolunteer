@@ -1,0 +1,199 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Luxury minimalistic color tokens for Impact Rewards */
+  --background: #ffffff; /* Pure white for a clean look */
+  --foreground: #374151; /* Dark gray for primary text */
+  --card: #f0fdf4; /* Soft green for cards */
+  --card-foreground: #374151; /* Dark gray text on cards */
+  --popover: #ffffff; /* White for popovers */
+  --popover-foreground: #374151; /* Dark gray for popover text */
+  --primary: #15803d; /* Green for primary actions */
+  --primary-foreground: #ffffff; /* White text for primary buttons */
+  --secondary: #84cc16; /* Accent green for secondary actions */
+  --secondary-foreground: #374151; /* Dark gray for secondary text */
+  --muted: #f0fdf4; /* Soft green for muted elements */
+  --muted-foreground: #6b7280; /* Medium gray for muted text */
+  --accent: #84cc16; /* Vibrant green for highlights */
+  --accent-foreground: #ffffff; /* White text for accent elements */
+  --destructive: #dc2626; /* Red for destructive actions */
+  --destructive-foreground: #ffffff; /* White text for destructive buttons */
+  --border: #e5e7eb; /* Light gray for borders */
+  --input: #ffffff; /* White for input fields */
+  --ring: #84cc16; /* Green for focus rings */
+  --chart-1: #15803d; /* Green for chart elements */
+  --chart-2: #d97706; /* Amber for alternative chart elements */
+  --chart-3: #dc2626; /* Red for critical data */
+  --chart-4: #f59e0b; /* Accent color for additional data */
+  --chart-5: #d97706; /* Amber for supplementary data */
+  --radius: 0.75rem; /* Slightly more rounded corners for luxury feel */
+  --sidebar: #ffffff; /* White for sidebar background */
+  --sidebar-foreground: #374151; /* Dark gray for sidebar text */
+  --sidebar-primary: #f0fdf4; /* Soft green for sidebar highlights */
+  --sidebar-primary-foreground: #374151; /* Dark gray for sidebar primary text */
+  --sidebar-accent: #84cc16; /* Accent for sidebar elements */
+  --sidebar-accent-foreground: #ffffff; /* White for sidebar accent text */
+  --sidebar-border: #e5e7eb; /* Light gray for sidebar borders */
+  --sidebar-ring: #84cc16; /* Green for sidebar focus rings */
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #22c55e;
+  --primary-foreground: #0f172a;
+  --secondary: #84cc16;
+  --secondary-foreground: #0f172a;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #84cc16;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+  --border: #334155;
+  --input: #1e293b;
+  --ring: #84cc16;
+  --chart-1: #22c55e;
+  --chart-2: #f59e0b;
+  --chart-3: #ef4444;
+  --chart-4: #84cc16;
+  --chart-5: #d97706;
+  --sidebar: #1e293b;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #334155;
+  --sidebar-primary-foreground: #f8fafc;
+  --sidebar-accent: #84cc16;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #334155;
+  --sidebar-ring: #84cc16;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* Luxury animations for Impact Rewards app */
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes coinFly {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-30px) scale(1.3);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-60px) scale(0.7);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(132, 204, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(132, 204, 22, 0.5);
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle 2.5s ease-in-out infinite;
+}
+
+.animate-coin-fly {
+  animation: coinFly 1s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Luxury card hover effects */
+.luxury-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.luxury-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
