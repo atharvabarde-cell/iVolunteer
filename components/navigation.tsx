@@ -2,19 +2,34 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Heart, DollarSign, BookOpen, Gift, Building2 } from "lucide-react"
+import { Home, Heart, DollarSign, Gift, Building2, LogIn, Shield, Settings } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 export function Navigation() {
   const pathname = usePathname()
+  const { user } = useAuth()
 
-  const navItems = [
+  // Base navigation items for all users
+  const baseNavItems = [
     { href: "/", icon: Home, label: "Home" },
     { href: "/volunteer", icon: Heart, label: "Volunteer" },
     { href: "/donate", icon: DollarSign, label: "Donate" },
-    { href: "/read", icon: BookOpen, label: "Read" },
     { href: "/rewards", icon: Gift, label: "Rewards" },
     { href: "/corporate", icon: Building2, label: "Corporate" },
   ]
+
+  // Add role-specific navigation items
+  const navItems = [...baseNavItems]
+
+  if (user) {
+    if (user.role === "ngo") {
+      navItems.push({ href: "/ngo-dashboard", icon: Settings, label: "Dashboard" })
+    } else if (user.role === "admin") {
+      navItems.push({ href: "/admin", icon: Shield, label: "Admin" })
+    }
+  } else {
+    navItems.push({ href: "/auth", icon: LogIn, label: "Login" })
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">

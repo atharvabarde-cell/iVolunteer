@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { Header } from "@/components/header"
 import { DailyQuote } from "@/components/daily-quote"
 import { ActivityCard } from "@/components/activity-card"
-import { Heart, BookOpen, DollarSign, Users, Sparkles, TrendingUp } from "lucide-react"
+import { Heart, DollarSign, Users, Sparkles, TrendingUp } from "lucide-react"
 import { useAppState } from "@/hooks/use-app-state"
 import { Navigation } from "@/components/navigation"
 
@@ -33,15 +33,6 @@ export default function HomePage() {
       color: "bg-accent",
       coins: 75,
       gradient: "from-accent to-accent/80",
-    },
-    {
-      id: "read",
-      title: "Read Religious Books",
-      description: "Read spiritual texts and grow personally",
-      icon: BookOpen,
-      color: "bg-primary",
-      coins: 30,
-      gradient: "from-primary to-primary/80",
     },
     {
       id: "community",
