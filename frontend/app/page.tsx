@@ -7,13 +7,17 @@ import { ActivityCard } from "@/components/activity-card"
 import { Heart, DollarSign, Users, Sparkles, TrendingUp } from "lucide-react"
 import { useAppState } from "@/hooks/use-app-state"
 import { Navigation } from "@/components/navigation"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function HomePage() {
-  const { checkDailyReset, coins, badges, streak } = useAppState()
+  const { user } = useAuth();
+  const { checkDailyReset, userCoins, badges, streakCount } = useAppState();
 
   useEffect(() => {
-    checkDailyReset()
-  }, [checkDailyReset])
+    if (user && user.role === 'user') {
+      checkDailyReset()
+    }
+  }, [checkDailyReset, user])
 
   const activities = [
     {
@@ -45,6 +49,20 @@ export default function HomePage() {
     },
   ]
 
+  // Conditional rendering based on user role
+  if (user && user.role !== 'user') {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="px-6 pb-24 max-w-md mx-auto text-center mt-12">
+          <h1 className="text-3xl font-bold text-foreground mb-4">Welcome, {user.name}</h1>
+          <p className="text-muted-foreground text-lg">Your dashboard is ready. Use the navigation below to manage your events.</p>
+        </main>
+        <Navigation />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       <Header />
@@ -61,7 +79,7 @@ export default function HomePage() {
               <div className="flex items-center justify-center mb-2">
                 <Sparkles className="h-5 w-5 text-accent" />
               </div>
-              <div className="text-2xl font-bold text-foreground">{coins}</div>
+              <div className="text-2xl font-bold text-foreground">{userCoins}</div>
               <div className="text-xs text-muted-foreground">Coins</div>
             </div>
 
@@ -69,7 +87,7 @@ export default function HomePage() {
               <div className="flex items-center justify-center mb-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
               </div>
-              <div className="text-2xl font-bold text-foreground">{streak}</div>
+              <div className="text-2xl font-bold text-foreground">{streakCount}</div>
               <div className="text-xs text-muted-foreground">Day Streak</div>
             </div>
 

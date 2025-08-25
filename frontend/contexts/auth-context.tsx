@@ -28,7 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Load user from localStorage on app start
     const savedUser = localStorage.getItem("auth-user")
     if (savedUser) {
       setUser(JSON.parse(savedUser))
@@ -37,58 +36,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string, role: UserRole = "user"): Promise<boolean> => {
-    setIsLoading(true)
+    setIsLoading(true);
 
-    // Simulate API call - replace with real authentication later
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role }),
+      });
+      const data = await response.json();
 
-    let newUser: User
-
-    // Check for default admin account
-    if (email === "admin@volunteer.com" && password === "admin123") {
-      newUser = {
-        id: "admin-001",
-        email: "admin@volunteer.com",
-        name: "System Admin",
-        role: "admin",
-        createdAt: new Date().toISOString(),
+      if (response.ok) {
+        setUser(data.user);
+        localStorage.setItem("auth-user", JSON.stringify(data.user));
+        setIsLoading(false);
+        return true;
+      } else {
+        console.error("Login failed:", data.message);
+        setIsLoading(false);
+        return false;
       }
-    } else {
-      // For demo purposes, accept any other email/password combination
-      newUser = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        name: email.split("@")[0],
-        role,
-        createdAt: new Date().toISOString(),
-      }
+    } catch (err) {
+      console.error("Login failed:", err);
+      setIsLoading(false);
+      return false;
     }
-
-    setUser(newUser)
-    localStorage.setItem("auth-user", JSON.stringify(newUser))
-    setIsLoading(false)
-    return true
-  }
+  };
 
   const signup = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
-    setIsLoading(true)
+    setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name, role }),
+      });
+      const data = await response.json();
 
-    const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      name,
-      role,
-      createdAt: new Date().toISOString(),
+      if (response.ok) {
+        setUser(data.user);
+        localStorage.setItem("auth-user", JSON.stringify(data.user));
+        setIsLoading(false);
+        return true;
+      } else {
+        console.error("Signup failed:", data.message);
+        setIsLoading(false);
+        return false;
+      }
+    } catch (err) {
+      console.error("Signup failed:", err);
+      setIsLoading(false);
+      return false;
     }
-
-    setUser(newUser)
-    localStorage.setItem("auth-user", JSON.stringify(newUser))
-    setIsLoading(false)
-    return true
-  }
+  };
 
   const logout = () => {
     setUser(null)

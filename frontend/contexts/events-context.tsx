@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
 
 export interface Event {
   id: string
@@ -18,7 +18,7 @@ export interface Event {
   category: string
   status: "pending" | "approved" | "rejected"
   createdAt: string
-  applications: string[] // user IDs who applied
+  applications: string[] 
 }
 
 export interface EventApplication {
@@ -34,10 +34,12 @@ export interface EventApplication {
 interface EventsContextType {
   events: Event[]
   applications: EventApplication[]
-  createEvent: (event: Omit<Event, "id" | "createdAt" | "participants" | "applications" | "status">) => void
-  applyToEvent: (eventId: string, userId: string, userName: string, userEmail: string) => void
-  approveEvent: (eventId: string) => void
-  rejectEvent: (eventId: string) => void
+  fetchEvents: () => void
+  fetchApplications: (userId?: string, eventId?: string) => void
+  createEvent: (eventData: Omit<Event, "id" | "createdAt" | "participants" | "status" | "applications">) => Promise<boolean>
+  applyToEvent: (eventId: string, userId: string, userName: string, userEmail: string) => Promise<boolean>
+  approveEvent: (eventId: string) => Promise<boolean>
+  rejectEvent: (eventId: string) => Promise<boolean>
   getEventsByOrganization: (organizationId: string) => Event[]
   getApplicationsByEvent: (eventId: string) => EventApplication[]
   getApplicationsByUser: (userId: string) => EventApplication[]
@@ -49,115 +51,129 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = useState<Event[]>([])
   const [applications, setApplications] = useState<EventApplication[]>([])
 
+  const fetchEvents = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/events');
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data);
+      } else {
+        console.error("Failed to fetch events from backend");
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err);
+    }
+  }, []);
+  
+  const fetchApplications = useCallback(async (userId?: string, eventId?: string) => {
+    try {
+      let endpoint = '';
+      if (userId) {
+        endpoint = `http://localhost:5000/api/applications/user/${userId}`;
+      } else if (eventId) {
+        endpoint = `http://localhost:5000/api/applications/event/${eventId}`;
+      }
+      
+      if (endpoint) {
+        const response = await fetch(endpoint);
+        if (response.ok) {
+          const data = await response.json();
+          setApplications(data);
+        } else {
+          console.error("Failed to fetch applications");
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+    }
+  }, []);
+
   useEffect(() => {
-    // Load events and applications from localStorage
-    const savedEvents = localStorage.getItem("events")
-    const savedApplications = localStorage.getItem("applications")
+    fetchEvents();
+  }, [fetchEvents]);
 
-    if (savedEvents) {
-      setEvents(JSON.parse(savedEvents))
-    } else {
-      // Initialize with sample events
-      const sampleEvents: Event[] = [
-        {
-          id: "food-bank",
-          title: "Food Bank Volunteer",
-          organization: "City Food Bank",
-          organizationId: "org-1",
-          location: "Downtown Community Center",
-          date: "2024-01-20",
-          time: "9:00 AM - 1:00 PM",
-          participants: 0,
-          maxParticipants: 20,
-          coins: 75,
-          description: "Help sort and distribute food to families in need",
-          category: "Community Service",
-          status: "approved",
-          createdAt: new Date().toISOString(),
-          applications: [],
-        },
-        {
-          id: "beach-cleanup",
-          title: "Beach Cleanup Drive",
-          organization: "Ocean Conservation Society",
-          organizationId: "org-2",
-          location: "Sunset Beach",
-          date: "2024-01-21",
-          time: "7:00 AM - 11:00 AM",
-          participants: 0,
-          maxParticipants: 15,
-          coins: 60,
-          description: "Join us in cleaning up our beautiful coastline",
-          category: "Environment",
-          status: "approved",
-          createdAt: new Date().toISOString(),
-          applications: [],
-        },
-      ]
-      setEvents(sampleEvents)
-      localStorage.setItem("events", JSON.stringify(sampleEvents))
+  const createEvent = async (eventData: Omit<Event, "id" | "createdAt" | "participants" | "status" | "applications">): Promise<boolean> => {
+    try {
+      const response = await fetch('http://localhost:5000/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData),
+      });
+
+      if (response.ok) {
+        fetchEvents();
+        return true;
+      } else {
+        const error = await response.json();
+        console.error("Failed to create event:", error.message);
+        return false;
+      }
+    } catch (err) {
+      console.error("Error creating event:", err);
+      return false;
     }
+  };
 
-    if (savedApplications) {
-      setApplications(JSON.parse(savedApplications))
+  const applyToEvent = async (eventId: string, userId: string, userName: string, userEmail: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/events/${eventId}/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userName, userEmail }),
+      });
+
+      if (response.ok) {
+        fetchEvents();
+        fetchApplications(userId);
+        return true;
+      } else {
+        const error = await response.json();
+        console.error("Failed to apply to event:", error.message);
+        return false;
+      }
+    } catch (err) {
+      console.error("Error applying to event:", err);
+      return false;
     }
-  }, [])
+  };
 
-  const createEvent = (eventData: Omit<Event, "id" | "createdAt" | "participants" | "applications" | "status">) => {
-    const newEvent: Event = {
-      ...eventData,
-      id: Math.random().toString(36).substr(2, 9),
-      participants: 0,
-      applications: [],
-      status: "pending",
-      createdAt: new Date().toISOString(),
+  const approveEvent = async (eventId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/events/${eventId}/approve`, {
+        method: 'PUT',
+      });
+      if (response.ok) {
+        fetchEvents();
+        return true;
+      } else {
+        const error = await response.json();
+        console.error("Failed to approve event:", error.message);
+        return false;
+      }
+    } catch (err) {
+      console.error("Error approving event:", err);
+      return false;
     }
+  };
 
-    const updatedEvents = [...events, newEvent]
-    setEvents(updatedEvents)
-    localStorage.setItem("events", JSON.stringify(updatedEvents))
-  }
-
-  const applyToEvent = (eventId: string, userId: string, userName: string, userEmail: string) => {
-    const newApplication: EventApplication = {
-      id: Math.random().toString(36).substr(2, 9),
-      eventId,
-      userId,
-      userName,
-      userEmail,
-      appliedAt: new Date().toISOString(),
-      status: "pending",
+  const rejectEvent = async (eventId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/events/${eventId}/reject`, {
+        method: 'PUT',
+      });
+      if (response.ok) {
+        fetchEvents();
+        return true;
+      } else {
+        const error = await response.json();
+        console.error("Failed to reject event:", error.message);
+        return false;
+      }
+    } catch (err) {
+      console.error("Error rejecting event:", err);
+      return false;
     }
-
-    const updatedApplications = [...applications, newApplication]
-    setApplications(updatedApplications)
-    localStorage.setItem("applications", JSON.stringify(updatedApplications))
-
-    // Update event applications array
-    const updatedEvents = events.map((event) =>
-      event.id === eventId
-        ? { ...event, applications: [...event.applications, userId], participants: event.participants + 1 }
-        : event,
-    )
-    setEvents(updatedEvents)
-    localStorage.setItem("events", JSON.stringify(updatedEvents))
-  }
-
-  const approveEvent = (eventId: string) => {
-    const updatedEvents = events.map((event) =>
-      event.id === eventId ? { ...event, status: "approved" as const } : event,
-    )
-    setEvents(updatedEvents)
-    localStorage.setItem("events", JSON.stringify(updatedEvents))
-  }
-
-  const rejectEvent = (eventId: string) => {
-    const updatedEvents = events.map((event) =>
-      event.id === eventId ? { ...event, status: "rejected" as const } : event,
-    )
-    setEvents(updatedEvents)
-    localStorage.setItem("events", JSON.stringify(updatedEvents))
-  }
+  };
 
   const getEventsByOrganization = (organizationId: string) => {
     return events.filter((event) => event.organizationId === organizationId)
@@ -176,6 +192,8 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
       value={{
         events,
         applications,
+        fetchEvents,
+        fetchApplications,
         createEvent,
         applyToEvent,
         approveEvent,
