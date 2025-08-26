@@ -19,7 +19,6 @@ interface AppState {
   streakCount: number
   totalActivitiesCompleted: number
 
-  // Actions
   addCoins: (amount: number) => void
   earnBadge: (badgeId: string) => void
   claimDailyQuote: () => void
@@ -30,7 +29,7 @@ interface AppState {
 export const useAppState = create<AppState>()(
   persist(
     (set, get) => ({
-      userCoins: 1250,
+      userCoins: 0,
       badges: [
         { id: "volunteer", icon: "Heart", color: "text-primary", earned: true, name: "Volunteer Hero" },
         { id: "donor", icon: "Trophy", color: "text-accent", earned: true, name: "Generous Giver" },
@@ -39,7 +38,7 @@ export const useAppState = create<AppState>()(
       ],
       dailyQuoteClaimed: false,
       lastVisitDate: "",
-      streakCount: 1,
+      streakCount: 0,
       totalActivitiesCompleted: 0,
 
       addCoins: (amount) =>
@@ -67,7 +66,6 @@ export const useAppState = create<AppState>()(
           const newCoins = state.userCoins + coinReward
           const newTotal = state.totalActivitiesCompleted + 1
 
-          // Auto-earn badges based on milestones
           let updatedBadges = [...state.badges]
           if (newTotal >= 5 && !state.badges.find((b) => b.id === "community")?.earned) {
             updatedBadges = updatedBadges.map((badge) =>

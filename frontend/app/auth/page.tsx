@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth, type UserRole } from "@/contexts/auth-context"
-import { Heart, Building2, Loader2 } from "lucide-react"
+import { Heart, Building2, Shield, Loader2 } from "lucide-react"
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -42,7 +42,13 @@ export default function AuthPage() {
       }
 
       if (success) {
-        router.push("/")
+        if (role === 'ngo') {
+          router.push('/ngo-dashboard');
+        } else if (role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
         setError("Authentication failed. Please try again.")
       }
@@ -54,6 +60,7 @@ export default function AuthPage() {
   const roleOptions = [
     { value: "user", label: "Volunteer", icon: Heart, description: "Join events and make a difference" },
     { value: "ngo", label: "NGO", icon: Building2, description: "Create events and manage volunteers" },
+    { value: "admin", label: "Admin", icon: Shield, description: "Manage all events and users" },
   ]
 
   return (
@@ -223,7 +230,7 @@ export default function AuthPage() {
           </Tabs>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Demo Mode: Any email/password combination will work</p>
+            <p>Demo Mode: For admin, use `admin@volunteer.com` / `admin123`</p>
           </div>
         </CardContent>
       </Card>

@@ -18,8 +18,10 @@ export function Header() {
   const { user, logout } = useAuth()
 
   useEffect(() => {
-    checkDailyReset()
-  }, [checkDailyReset])
+    if (user && user.role === 'user') {
+      checkDailyReset()
+    }
+  }, [checkDailyReset, user])
 
   return (
     <header className="bg-card border-b border-border px-4 py-4">

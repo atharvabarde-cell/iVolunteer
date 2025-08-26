@@ -9,23 +9,22 @@ export function Navigation() {
   const pathname = usePathname()
   const { user } = useAuth()
 
-  // Base navigation items for all users
   const baseNavItems = [
     { href: "/", icon: Home, label: "Home" },
     { href: "/volunteer", icon: Heart, label: "Volunteer" },
     { href: "/donate", icon: DollarSign, label: "Donate" },
-    { href: "/rewards", icon: Gift, label: "Rewards" },
-    { href: "/corporate", icon: Building2, label: "Corporate" },
   ]
 
-  // Add role-specific navigation items
-  const navItems = [...baseNavItems]
+  let navItems = [...baseNavItems]
 
   if (user) {
     if (user.role === "ngo") {
       navItems.push({ href: "/ngo-dashboard", icon: Settings, label: "Dashboard" })
     } else if (user.role === "admin") {
       navItems.push({ href: "/admin", icon: Shield, label: "Admin" })
+    } else if (user.role === "user") {
+      navItems.push({ href: "/rewards", icon: Gift, label: "Rewards" })
+      navItems.push({ href: "/my-applications", icon: Heart, label: "My Applications" })
     }
   } else {
     navItems.push({ href: "/auth", icon: LogIn, label: "Login" })
