@@ -1,42 +1,75 @@
 "use client"
+import { useState } from "react"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Clock, Users, Heart, Calendar } from "lucide-react"
-import { useAppState } from "@/hooks/use-app-state"
 import { Navigation } from "@/components/navigation"
 import { useEvents } from "@/contexts/events-context"
 import { useAuth } from "@/contexts/auth-context"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 
 export default function VolunteerPage() {
-  const { addCoins, addBadge } = useAppState()
-  const { events, applyToEvent, getApplicationsByUser } = useEvents()
+  const { events, getApplicationsByUser, refreshEvents } = useEvents()
   const { user } = useAuth()
+
+  const [showForm, setShowForm] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<any>(null)
+  const [formData, setFormData] = useState({ fullName: "", phone: "", message: "" })
+  const [loading, setLoading] = useState(false)
 
   // Get approved events only
   const approvedEvents = events.filter((event) => event.status === "approved")
 
-  // Get user's applications
-  const userApplications = user ? getApplicationsByUser(user.id) : []
+  // Get user's applications (using MongoDB _id)
+  const userApplications = user ? getApplicationsByUser(user._id) : []
   const appliedEventIds = userApplications.map((app) => app.eventId)
 
-  const handleJoinEvent = (eventId: string, coins: number) => {
+  const handleJoinEvent = (event: any) => {
     if (!user) {
       alert("Please login to apply for events")
       return
     }
+    setSelectedEvent(event)
+    setShowForm(true)
+  }
 
-    if (!appliedEventIds.includes(eventId)) {
-      applyToEvent(eventId, user.id, user.name, user.email)
-      addCoins(coins)
-      addBadge({
-        id: `volunteer-${eventId}`,
-        name: "Volunteer Hero",
-        description: "Applied to a volunteer event",
-        icon: "🤝",
-        earnedAt: new Date(),
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleFormSubmit = async () => {
+    if (!selectedEvent || !user) return
+    setLoading(true)
+
+    try {
+      const response = await fetch("http://localhost:5000/api/event-applications/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: selectedEvent._id, // use MongoDB ID
+          userId: user._id,           // use MongoDB ID
+          ...formData,
+        }),
       })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data.message || "Failed to apply")
+      } else {
+        alert("Successfully applied! You earned 50 points 🎉")
+        refreshEvents?.()
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Something went wrong. Please try again.")
+    } finally {
+      setLoading(false)
+      setShowForm(false)
+      setFormData({ fullName: "", phone: "", message: "" })
     }
   }
 
@@ -60,7 +93,7 @@ export default function VolunteerPage() {
           ) : (
             <div className="space-y-4">
               {approvedEvents.map((event) => (
-                <Card key={event.id} className="border-border">
+                <Card key={event._id} className="border-border">
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -100,17 +133,19 @@ export default function VolunteerPage() {
                         {event.coins} coins
                       </div>
                       <Button
-                        onClick={() => handleJoinEvent(event.id, event.coins)}
-                        disabled={appliedEventIds.includes(event.id) || event.participants >= event.maxParticipants}
+                        onClick={() => handleJoinEvent(event)}
+                        disabled={appliedEventIds.includes(event._id) || event.participants >= event.maxParticipants || loading}
                         className="bg-primary hover:bg-primary/90"
                       >
-                        {appliedEventIds.includes(event.id) ? (
+                        {appliedEventIds.includes(event._id) ? (
                           <>
                             <Heart className="w-4 h-4 mr-2" />
                             Applied
                           </>
                         ) : event.participants >= event.maxParticipants ? (
                           "Event Full"
+                        ) : loading ? (
+                          "Submitting..."
                         ) : (
                           "Apply to Event"
                         )}
@@ -125,6 +160,40 @@ export default function VolunteerPage() {
       </main>
 
       <Navigation />
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Register for {selectedEvent?.title}</DialogTitle>
+          </DialogHeader>
+          <Input
+            name="fullName"
+            placeholder="Full Name"
+            value={formData.fullName}
+            onChange={handleFormChange}
+            className="my-2"
+          />
+          <Input
+            name="phone"
+            placeholder="Phone"
+            value={formData.phone}
+            onChange={handleFormChange}
+            className="my-2"
+          />
+          <Input
+            name="message"
+            placeholder="Why do you want to join?"
+            value={formData.message}
+            onChange={handleFormChange}
+            className="my-2"
+          />
+          <DialogFooter>
+            <Button onClick={handleFormSubmit} disabled={loading}>
+              {loading ? "Submitting..." : "Submit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

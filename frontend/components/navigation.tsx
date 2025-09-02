@@ -13,6 +13,7 @@ export function Navigation() {
     { href: "/", icon: Home, label: "Home" },
     { href: "/volunteer", icon: Heart, label: "Volunteer" },
     { href: "/donate", icon: DollarSign, label: "Donate" },
+    { href: "/activities", icon: Building2, label: "Activities" }, // added Activities
   ]
 
   let navItems = [...baseNavItems]

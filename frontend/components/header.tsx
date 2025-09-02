@@ -18,7 +18,7 @@ export function Header() {
   const { user, logout } = useAuth()
 
   useEffect(() => {
-    if (user && user.role === 'user') {
+    if (user && user.role === "user") {
       checkDailyReset()
     }
   }, [checkDailyReset, user])
@@ -36,27 +36,45 @@ export function Header() {
 
         <div className="flex items-center space-x-4">
           {user ? (
-            // Show user info when logged in
+            // Show user info with points when logged in
             <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2 bg-accent/10 px-3 py-1 rounded-full">
-                <User className="w-4 h-4 text-accent" />
-                <span className="text-sm font-medium text-foreground">{user.name}</span>
-                <span className="text-xs text-muted-foreground capitalize">({user.role})</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={logout} className="h-8 w-8 p-0">
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
+  <div className="flex items-center space-x-2 bg-accent/10 px-3 py-1 rounded-full">
+    <User className="w-4 h-4 text-accent" />
+    <span className="text-sm font-medium text-foreground">{user.name}</span>
+    <span className="text-xs text-muted-foreground capitalize">({user.role})</span>
+
+    {/* Show user coins */}
+    <div className="flex items-center space-x-1 bg-accent/20 px-2 py-0.5 rounded-full">
+      <Coins className="w-3 h-3 text-accent" />
+      <span className="text-xs font-semibold text-foreground">
+        {user.coins?.toLocaleString() ?? 0}
+      </span>
+    </div>
+
+    {/* Show user points */}
+    <div className="flex items-center space-x-1 bg-accent/20 px-2 py-0.5 rounded-full">
+      <span className="text-xs font-semibold text-foreground">
+        {user.points?.toLocaleString() ?? 0} pts
+      </span>
+    </div>
+  </div>
+  <Button variant="ghost" size="sm" onClick={logout} className="h-8 w-8 p-0">
+    <LogOut className="w-4 h-4" />
+  </Button>
+</div>
+
           ) : (
             // Show coins and badges when not logged in
             <>
               <div className="flex items-center space-x-1 bg-accent/10 px-3 py-1 rounded-full transition-all duration-300 hover:bg-accent/20">
                 <Coins className="w-4 h-4 text-accent" />
-                <span className="text-sm font-semibold text-foreground">{userCoins.toLocaleString()}</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {userCoins.toLocaleString()}
+                </span>
               </div>
 
               <div className="flex items-center space-x-1">
-                {badges.map((badge, index) => {
+                {badges.map((badge) => {
                   const IconComponent = iconMap[badge.icon as keyof typeof iconMap]
                   return (
                     <div
