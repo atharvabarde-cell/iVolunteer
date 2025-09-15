@@ -13,7 +13,7 @@ const logFormat = format.combine(
     })
 );
 
-const logger = createLogger({
+export const logger = createLogger({
     level: 'info',
     format: logFormat,
     transports: [
@@ -60,5 +60,3 @@ import fs from 'fs';
 if(!fs.existsSync('logs')){
     fs.mkdirSync('logs', {recursive: true});
 }
-
-module.exports = logger;
