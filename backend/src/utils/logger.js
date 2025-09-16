@@ -1,5 +1,5 @@
-const {createLogger, format, transports} = require("winston")
-const DailyRotateFile = require("winston-daily-rotate-file")
+import {createLogger, format, transports} from "winston"
+import DailyRotateFile from "winston-daily-rotate-file"
 
 
 const logFormat = format.combine(
@@ -53,10 +53,13 @@ export const logger = createLogger({
     ],
     rejectionHandlers: [
         new transports.File({filename: 'logs/rejections.log'})
-    ]
+    ],
+    exitOnError: false
 });
 
 import fs from 'fs';
 if(!fs.existsSync('logs')){
     fs.mkdirSync('logs', {recursive: true});
 }
+
+
