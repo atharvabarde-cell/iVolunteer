@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
-const User = require('../models/User');
-const { ApiError }  = require("../utils/ApiError")
-const {logger} = require("../utils/logger")
+import jwt from "jsonwebtoken"
+import { User } from "../models/User.js";
+import { ApiError } from "../utils/ApiError.js";
+import { logger } from "../utils/logger.js";
 
 export const authentication = async (req, res, next) => {
     try {
