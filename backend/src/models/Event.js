@@ -1,7 +1,6 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const eventSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
   title: { type: String, required: true },
   organization: { type: String, required: true },
   organizationId: { type: String, required: true },
@@ -14,10 +13,7 @@ const eventSchema = new mongoose.Schema({
   description: { type: String, required: true },
   category: { type: String, required: true },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  createdAt: { type: Date, default: Date.now },
   applications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
-});
+}, {timestamps: true});
 
-const Event = mongoose.model('Event', eventSchema);
-
-module.exports = Event;
+export const Event = mongoose.model('Event', eventSchema);
