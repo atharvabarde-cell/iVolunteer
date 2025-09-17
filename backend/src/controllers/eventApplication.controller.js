@@ -1,18 +1,11 @@
 import { eventApplicationService } from "../services/eventApplication.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
 const applyForEvent = asyncHandler(async (req, res) => {
-    const { eventId, phone, message } = req.body;
-    const user = req.user; // Get user from auth middleware
+    const user = req.user?._id; // Get user from auth middleware
+    const eventId = req.params.id;
 
-    const application = await eventApplicationService.createApplication({
-        eventId,
-        userId: user._id,
-        fullName: user.name,
-        phone,
-        message
-    });
+    const application = await eventApplicationService.createApplication(req.body, user, eventId);
 
     return res.status(201).json(
         new ApiResponse(201, application, "Application submitted successfully")

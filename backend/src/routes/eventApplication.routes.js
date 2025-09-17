@@ -11,7 +11,7 @@ router.use(authentication);
 
 // Apply for an event
 router.post(
-    "/apply",
+    "/apply/:id",
     validate(eventApplicationValidator.applicationSchema),
     eventApplicationController.applyForEvent
 );
