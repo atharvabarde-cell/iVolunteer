@@ -5,11 +5,22 @@ import { createContext, useContext, useState, useEffect } from "react"
 
 export type UserRole = "user" | "ngo" | "admin"
 
+export interface Badge {
+  name: string
+  earnedAt: string
+}
+
 export interface User {
   id: string
   email: string
   name: string
   role: UserRole
+  points: number
+  coins: number
+  volunteeredHours: number
+  totalRewards: number
+  completedEvents: string[]
+  badges: Badge[]
   createdAt: string
 }
 

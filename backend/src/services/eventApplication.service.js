@@ -7,11 +7,12 @@ const createApplication = async (applicationData) => {
         const application = new EventApplication(applicationData);
         await application.save();
 
-        // Award points after successful application
-        await User.findByIdAndUpdate(
-            applicationData.userId,
-            { $inc: { points: 50 } }
-        );
+        // Award points after successful application using the new User method
+        const user = await User.findById(applicationData.userId);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+        await user.awardPoints(50); // Award 50 points for applying
 
         return application;
     } catch (error) {
