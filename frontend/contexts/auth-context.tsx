@@ -5,11 +5,22 @@ import { createContext, useContext, useState, useEffect } from "react"
 
 export type UserRole = "user" | "ngo" | "admin"
 
+export interface Badge {
+  name: string
+  earnedAt: string
+}
+
 export interface User {
   id: string
   email: string
   name: string
   role: UserRole
+  points: number
+  coins: number
+  volunteeredHours: number
+  totalRewards: number
+  completedEvents: string[]
+  badges: Badge[]
   createdAt: string
 }
 
@@ -67,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/signup', {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name, role }),
