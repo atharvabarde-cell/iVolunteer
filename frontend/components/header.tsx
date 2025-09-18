@@ -1,98 +1,106 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { Coins, Award, Trophy, Star, Heart, User, LogOut } from "lucide-react"
-import { useAppState } from "@/hooks/use-app-state"
-import { useAuth } from "@/contexts/auth-context"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import {
+  Menu,
+  X,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
-const iconMap = {
-  Heart,
-  Trophy,
-  Star,
-  Award,
-}
 
 export function Header() {
-  const { userCoins, badges, checkDailyReset } = useAppState()
-  const { user, logout } = useAuth()
+  const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (user && user.role === "user") {
-      checkDailyReset()
-    }
-  }, [checkDailyReset, user])
+  const baseNavItems = [
+    { href: "/", label: "Home" },
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/volunteer", label: "Volunteer" },
+    { href: "/donate", label: "Donate" },
+    { href: "/activities", label: "Activities" },
+  ];
 
   return (
-    <header className="bg-card border-b border-border px-4 py-4">
-      <div className="flex items-center justify-between">
-        {/* Logo */}
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-            <Heart className="w-5 h-5 text-primary-foreground" />
+    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+        {/* ==== Logo / Brand ==== */}
+        <div className="flex items-center gap-3">
+          <span className="text-gray-800 leading-none">
+            <span className="font-bold text-4xl ">i</span>{" "}
+            <span className="text-3xl">Volunteer</span>
+          </span>
+        </div>
+
+        {/* ==== Nav (desktop) ==== */}
+        <nav className="hidden md:flex items-center gap-8">
+          {baseNavItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-gray-700 hover:text-blue-600 transition"
+            >
+              {item.label}
+            </Link>
+          ))}
+          <div>
+            <button className="ml-4 rounded-sm hover:scale-95 px-5 py-2 text-sm font-semibold transition-all border">
+              <Link href="/auth">Sign up</Link>
+            </button>
+
+            <button className="ml-4 rounded-sm bg-black hover:scale-95 px-5 py-2 text-sm font-semibold text-white transition-all">
+              <Link href="/auth">Login</Link>
+            </button>
           </div>
-          <h1 className="text-lg font-bold text-foreground">Impact Rewards</h1>
-        </div>
+        </nav>
 
-        <div className="flex items-center space-x-4">
-          {user ? (
-            // Show user info with points when logged in
-            <div className="flex items-center space-x-3">
-  <div className="flex items-center space-x-2 bg-accent/10 px-3 py-1 rounded-full">
-    <User className="w-4 h-4 text-accent" />
-    <span className="text-sm font-medium text-foreground">{user.name}</span>
-    <span className="text-xs text-muted-foreground capitalize">({user.role})</span>
-
-    {/* Show user coins */}
-    <div className="flex items-center space-x-1 bg-accent/20 px-2 py-0.5 rounded-full">
-      <Coins className="w-3 h-3 text-accent" />
-      <span className="text-xs font-semibold text-foreground">
-        {user.coins?.toLocaleString() ?? 0}
-      </span>
-    </div>
-
-    {/* Show user points */}
-    <div className="flex items-center space-x-1 bg-accent/20 px-2 py-0.5 rounded-full">
-      <span className="text-xs font-semibold text-foreground">
-        {user.points?.toLocaleString() ?? 0} pts
-      </span>
-    </div>
-  </div>
-  <Button variant="ghost" size="sm" onClick={logout} className="h-8 w-8 p-0">
-    <LogOut className="w-4 h-4" />
-  </Button>
-</div>
-
+        {/* ==== Mobile menu button ==== */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="md:hidden rounded p-2 hover:bg-gray-100"
+        >
+          {open ? (
+            <X className="h-5 w-5 text-gray-700" />
           ) : (
-            // Show coins and badges when not logged in
-            <>
-              <div className="flex items-center space-x-1 bg-accent/10 px-3 py-1 rounded-full transition-all duration-300 hover:bg-accent/20">
-                <Coins className="w-4 h-4 text-accent" />
-                <span className="text-sm font-semibold text-foreground">
-                  {userCoins.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-1">
-                {badges.map((badge) => {
-                  const IconComponent = iconMap[badge.icon as keyof typeof iconMap]
-                  return (
-                    <div
-                      key={badge.id}
-                      className={`w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center transition-all duration-300 hover:scale-110 cursor-pointer ${
-                        badge.earned ? "animate-sparkle shadow-sm" : "opacity-50"
-                      }`}
-                      title={badge.name}
-                    >
-                      <IconComponent className={`w-3 h-3 ${badge.color}`} />
-                    </div>
-                  )
-                })}
-              </div>
-            </>
+            <Menu className="h-5 w-5 text-gray-700" />
           )}
-        </div>
+        </button>
       </div>
+
+      {/* ==== Mobile Nav (animated) ==== */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="absolute top-full left-0 w-full h-screen md:hidden border-t border-gray-200 bg-white shadow-lg z-50"
+          >
+            <nav className="flex flex-col gap-2 px-8 py-8">
+              {baseNavItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-gray-700 hover:text-green-600 transition py-3"
+                >
+                  {item.label}
+                </Link>
+              ))}
+
+              {/* Divider */}
+              <div className="my-3 border-t border-gray-200"></div>
+
+              {/* Auth buttons */}
+              <button className="w-full rounded-md border px-5 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition">
+                <Link href="/auth">Sign up</Link>
+              </button>
+              <button className="mt-2 w-full rounded-md bg-black px-5 py-2 text-sm font-semibold text-white shadow hover:bg-gray-900 transition">
+                <Link href="/auth">Login</Link>
+              </button>
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
-  )
+  );
 }
