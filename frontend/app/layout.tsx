@@ -5,6 +5,8 @@ import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { EventsProvider } from "@/contexts/events-context"
+import { AdminProvider } from "@/contexts/admin-context"
+import { UserProvider } from "@/contexts/user-context"
 
 export const metadata: Metadata = {
   title: "Impact Rewards - Volunteer Platform",
@@ -29,9 +31,13 @@ html {
         `}</style>
       </head>
       <body>
+        <UserProvider>
+        <AdminProvider>
         <AuthProvider>
           <EventsProvider>{children}</EventsProvider>
         </AuthProvider>
+        </AdminProvider>
+        </UserProvider>
       </body>
     </html>
   )

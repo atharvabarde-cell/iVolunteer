@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependencies
 node_modules/
 
@@ -12,3 +13,6 @@ dist/
 logs/
 *.log
 .DS_Store
+=======
+/node_modules
+>>>>>>> feature/admin-dashboard

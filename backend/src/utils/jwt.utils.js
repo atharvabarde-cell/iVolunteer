@@ -1,23 +1,46 @@
 import jwt from "jsonwebtoken";
+import { generateToken } from "./password.utils.js";
+
 
 export const generateJwtToken = (user) => {
-    const jwtToken = jwt.sign({userId: user._id, role: user.role}, process.env.JWT_TOKEN, {
-        expiresIn: "7d"
+    const accessToken = jwt.sign({userId: user._id, role: user.role}, process.env.JWT_TOKEN, {
+        expiresIn: "30m"
     });
-    return jwtToken;
+
+    const refreshToken = generateToken();
+
+    return {accessToken, refreshToken};
 }
 
-export const setCookies = (res, jwtToken) => {
-    res.cookie("jwtToken", jwtToken, {
+export const tokenExpiresAt = () => {
+    return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+}
+
+
+export const setCookies = (res, accessToken, refreshToken) => {
+    res.cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict", 
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 30 * 60 * 1000, 
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict", 
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     })
 }
 
 export const clearCookies = (res) => {
-    res.clearCookie("jwtToken", {
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+    });
+
+    res.clearCookie("refreshToken", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
