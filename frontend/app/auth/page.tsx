@@ -23,14 +23,17 @@ export default function AuthPage() {
     formState: { errors },
   } = useForm<FormValues>();
 
-  const onSubmit = (data: FormValues) => {
-    console.log(tab === "login" ? "Login Data:" : "Signup Data:", data);
-    localStorage.setItem("role", data.role); // mock role
-    router.push(`/dashboard/${data.role}-dashboard`);
-  };
+ const onSubmit = (data: FormValues) => {
+  console.log(tab === "login" ? "Login Data:" : "Signup Data:", data);
+
+  // ✅ Save role to localStorage
+  localStorage.setItem("role", data.role);
+
+  router.push("/dashboard");
+};
 
   const roleOptions = [
-    { value: "user", label: "User", icon: User },
+    { value: "admin", label: "Admin", icon: User },
     { value: "volunteer", label: "Volunteer", icon: Heart },
     { value: "ngo", label: "NGO", icon: Building2 },
     { value: "corporate", label: "Corporate", icon: Shield },
@@ -110,7 +113,9 @@ export default function AuthPage() {
                       className="hidden"
                     />
                     <Icon className="w-5 h-5 text-blue-600 mr-3" />
-                    <span className="font-medium text-blue-800">{opt.label}</span>
+                    <span className="font-medium text-blue-800">
+                      {opt.label}
+                    </span>
                   </label>
                 );
               })}
@@ -134,7 +139,9 @@ export default function AuthPage() {
               placeholder="you@example.com"
             />
             {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -152,7 +159,9 @@ export default function AuthPage() {
               placeholder="••••••••"
             />
             {errors.password && (
-              <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
@@ -194,8 +203,3 @@ export default function AuthPage() {
     </div>
   );
 }
-
-
-
-
-
