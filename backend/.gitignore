@@ -1,1 +1,18 @@
+<<<<<<< HEAD
+# Dependencies
+node_modules/
+
+# Environment varibales
+.env
+
+.env*
+
+!.env*.example
+
+dist/
+logs/
+*.log
+.DS_Store
+=======
 /node_modules
+>>>>>>> feature/admin-dashboard
