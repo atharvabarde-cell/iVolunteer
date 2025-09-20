@@ -2,11 +2,14 @@
 
 import Adminstats from "@/components/Adminstats";
 import Approvalqueueadmin from "@/components/Approvalqueueadmin";
+import CSRAnalytics from "@/components/Csranalytics";
 import Dailyquote from "@/components/Dailyquote";
+import Eventbutton from "@/components/Eventbutton";
 import Footer from "@/components/Footer";
 import { Header } from "@/components/header";
 import Ngoanalytics from "@/components/Ngoanalytics";
 import Ngoeventtable from "@/components/Ngoeventtable";
+import Sponsorshipopp from "@/components/Sponsorshipopp";
 import Useractivity from "@/components/Useractivity";
 import Useranalytics from "@/components/Useranalytics";
 import Usermanagementtable from "@/components/Usermanagementtable";
@@ -17,7 +20,7 @@ import { useEffect, useState } from "react";
 // Example role-based dashboard components
 function AdminDashboard() {
   return (
-    <section className="bg-[#f4f7fb] h-full w-full">
+    <section className="bg-[#f4f7fb] h-full w-full min-w-[350px]">
       <Header />
       <div className="p-6">
         <h1 className="text-4xl font-bold">Admin Dashboard</h1>
@@ -37,16 +40,17 @@ function AdminDashboard() {
 }
 
 function NGODashboard() {
-  return <section  className="bg-[#f4f7fb] h-full">
+  return <section  className="bg-[#f4f7fb] h-full min-w-[350px]">
     <Header/>
     <Ngoanalytics/>
+    <Eventbutton/>
     <Ngoeventtable/>
     <Footer/>
   </section>
 }
 
 function VolunteerDashboard() {
-  return <section className="w-full h-full bg-gray-50">
+  return <section className="w-full h-full bg-gray-50 min-w-[350px]">
     <Header/>
     <Useranalytics/>
     <Dailyquote/>
@@ -57,7 +61,12 @@ function VolunteerDashboard() {
 }
 
 function CorporateDashboard() {
-  return <h1 className="text-2xl font-bold">Corporate Dashboard</h1>;
+  return <section>
+    <Header/>
+    <Sponsorshipopp/>
+    <CSRAnalytics/>
+    <Footer/>
+  </section>;
 }
 
 export default function Page() {
