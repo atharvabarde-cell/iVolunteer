@@ -28,13 +28,31 @@ const shutdownLogger = async() => {
 
 const server = async() => {
     try {
+        // First try to connect to database
         await connectDB();
+        logger.info("📦 Connected to MongoDB");
 
-        httpServer = app.listen(port, () => {
-            logger.info(`🚀 Server running on PORT: ${port}`);
-        });
+        // Add error handler for app initialization
+        const initializeApp = () => {
+            return new Promise((resolve, reject) => {
+                try {
+                    httpServer = app.listen(port, () => {
+                        logger.info(`🚀 Server running on PORT: ${port}`);
+                        resolve();
+                    });
 
-        
+                    httpServer.on('error', (err) => {
+                        logger.error(`Failed to start server: ${err.message}`);
+                        reject(err);
+                    });
+                } catch (err) {
+                    console.log(err);
+                    reject(err);
+                }
+            });
+        };
+
+        await initializeApp();
     } catch (error) {
         logger.error(
             `Failed to start server! error message: ${error.message}, error stack: ${error.stack}`

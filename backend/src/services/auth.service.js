@@ -1,6 +1,6 @@
 import { User } from "../models/User.js"
 import { ApiError } from '../utils/ApiError.js';
-import { Session } from "../models/Session.model.js";
+import { Session } from "../models/Session.js";
 import {hashPassword, comparePassword, hashToken} from "../utils/password.utils.js"
 
 const register = async(data) => {
@@ -17,11 +17,12 @@ const register = async(data) => {
         email,
         name: data.name,
         password: hashedPassword,
+        role: data.role
     });
 
     await user.save();
 
-    return {userId: user._id, email: user.email, name: user.name}
+    return {userId: user._id, email: user.email, name: user.name, role: user.role}
 }
 
 
@@ -39,7 +40,7 @@ const login = async (data) => {
         throw new ApiError(401, "Invalid password");
     }
 
-    return {userId: user._id, email: user.email, name: user.name}
+    return {userId: user._id, email: user.email, name: user.name, role: user.role}
 }
 
 const logout = async (refreshToken) => {

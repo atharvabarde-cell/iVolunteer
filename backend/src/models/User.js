@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
+    id: {
+        type: String,
+        default: () => new mongoose.Types.ObjectId().toString(),
+        unique: true,
+        required: true
+    },
     email: {
         type: String,
         required: [true, "Email is required"],
@@ -68,7 +74,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for efficient queries
-userSchema.index({ email: 1 });
+// userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ points: -1 }); // For leaderboard queries
 

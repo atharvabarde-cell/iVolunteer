@@ -12,7 +12,7 @@ const authentication = async (req, res, next) => {
 
         const jwtToken = req.cookies.jwtToken || tokenFromHeader
         
-        const decoded = jwt.verify(jwtToken, process.env.JWT_TOKEN);
+        const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET);
         if(!decoded) throw new ApiError(400, "Invalid request");
 
         const userId = decoded.userId || decoded._id || decoded.sub 

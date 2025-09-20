@@ -3,7 +3,7 @@ import { generateToken } from "./password.utils.js";
 
 
 export const generateJwtToken = (user) => {
-    const accessToken = jwt.sign({userId: user._id, role: user.role}, process.env.JWT_TOKEN, {
+    const accessToken = jwt.sign({userId: user._id, role: user.role}, process.env.JWT_SECRET, {
         expiresIn: "30m"
     });
 
