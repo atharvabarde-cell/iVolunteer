@@ -1,4 +1,4 @@
-import { Session } from "../models/Session.model.js";
+import { Session } from "../models/Session.js";
 import { generateJwtToken, tokenExpiresAt } from "../utils/jwt.utils.js";
 import { hashToken } from "../utils/password.utils.js";
 
@@ -7,7 +7,7 @@ import { ApiError } from "../utils/ApiError.js";
 
 export const createSession = async (user) => {
     try {
-        const {accessToken, refreshToken: rawToken} = generateAccessAndRefreshToken(user)
+        const {accessToken, refreshToken: rawToken} = generateJwtToken(user)
     
         const hashedToken = hashToken(rawToken)
     
@@ -42,7 +42,7 @@ const getSessionByRefreshToken = async(refreshToken) => {
 export const refreshAccessToken = async (refreshToken) => {
     const session = await getSessionByRefreshToken(refreshToken)
 
-    const {accessToken, refreshToken: rawRefreshToken} = generateAccessAndRefreshToken(session.userId)
+    const {accessToken, refreshToken: rawRefreshToken} = generateJwtToken(session.userId);
 
     const newRefreshToken = hashToken(rawRefreshToken);
 

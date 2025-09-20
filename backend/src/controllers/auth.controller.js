@@ -18,7 +18,14 @@ const login = asyncHandler(async(req, res) => {
     const {accessToken, refreshToken} = await createSession(user)
     setCookies(res, accessToken, refreshToken)
 
-    return res.status(200).json({user, message: "Logged in sucessful"});
+    return res.status(200).json({
+        user, 
+        tokens: {
+            accessToken,
+            refreshToken
+        },
+        message: "Logged in sucessful"
+    });
 })
 
 const logout = asyncHandler(async(req, res) => {
