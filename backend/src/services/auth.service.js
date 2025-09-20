@@ -1,6 +1,6 @@
 import { User } from "../models/User.js"
 import { ApiError } from '../utils/ApiError.js';
-import { Session } from "../models/Session.model.js";
+import { Session } from "../models/Session.js";
 import {hashPassword, comparePassword, hashToken} from "../utils/password.utils.js"
 
 const register = async(data) => {

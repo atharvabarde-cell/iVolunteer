@@ -1,4 +1,4 @@
-import { Session } from "../models/Session.model.js";
+import { Session } from "../models/Session.js";
 import { generateJwtToken, tokenExpiresAt } from "../utils/jwt.utils.js";
 import { hashToken } from "../utils/password.utils.js";
 
