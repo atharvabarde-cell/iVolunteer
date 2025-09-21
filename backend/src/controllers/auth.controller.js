@@ -1,87 +1,105 @@
-import { authService } from "../services/auth.service.js"
-import { createSession } from "../services/session.service.js"
-import { asyncHandler } from "../utils/asyncHandler.js"
-import { setCookies } from "../utils/jwt.utils.js"
+import { authService } from "../services/auth.service.js";
+import { createSession } from "../services/session.service.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { setCookies } from "../utils/jwt.utils.js";
+import { ApiError } from "../utils/ApiError.js";
 
 const register = asyncHandler(async(req, res) => {
-    const user = await authService.register(req.body)
+    const user = await authService.register(req.body);
 
-    const {accessToken, refreshToken} = await createSession(user)
-    setCookies(res, accessToken, refreshToken)
+    // Wrap session creation in try/catch to catch errors
+    let tokens;
+    try {
+        tokens = await createSession(user);
+    } catch(err) {
+        console.error("Session creation failed:", err);
+        throw new ApiError(500, "Error while creating session");
+    }
 
-    return res.status(201).json({user, message: "User register sucessfully"});
-})
+    setCookies(res, tokens.accessToken, tokens.refreshToken);
 
-const login = asyncHandler(async(req, res) => {
-    const user = await authService.login(req.body)
-
-    const {accessToken, refreshToken} = await createSession(user)
-    setCookies(res, accessToken, refreshToken)
-
-    return res.status(200).json({
-        user, 
-        tokens: {
-            accessToken,
-            refreshToken
-        },
-        message: "Logged in sucessful"
-    });
-})
-
-const logout = asyncHandler(async(req, res) => {
-    const refreshToken = req.cookies.refreshToken;
-
-    await authService.logout(refreshToken)
-    clearCookies(res);
-
-    return res.status(200).json(new ApiResponse(200, {}, "Logout successful"))
+    return res.status(201).json({user, message: "User registered successfully"});
 });
 
-const getUser = asyncHandler(async(req, res) => {
-    const id = req.user?._id
-    const user = await authService.getUser(id)
+const login = asyncHandler(async (req, res) => {
+  const user = await authService.login(req.body);
 
-    return res.status(200).json(new ApiResponse(200, {user}, "User account fetched successfully"));
+  const { accessToken, refreshToken } = await createSession(user);
+  setCookies(res, accessToken, refreshToken);
+
+  return res.status(200).json({
+    user,
+    tokens: {
+      accessToken,
+      refreshToken,
+    },
+    message: "Logged in sucessful",
+  });
 });
 
+const logout = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
 
-const changePassword = asyncHandler(async(req, res) => {
-    const id = req.user?._id
+  await authService.logout(refreshToken);
+  clearCookies(res);
 
-    const result = await authService.changePassword(id, req.body)
-
-    return res.status(200).json(new ApiResponse(200, {result}, "Password changed successfully"));
+  return res.status(200).json(new ApiResponse(200, {}, "Logout successful"));
 });
 
+const getUser = asyncHandler(async (req, res) => {
+  const id = req.user?._id;
+  const user = await authService.getUser(id);
 
-const forgetPasswordRequest = asyncHandler(async(req, res) => {
-    const user = await authService.forgetPasswordRequest(req.body);
-    const resetLink = `${process.env.CLIENT_URL}/forget-password/${user.token}`;
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { user }, "User account fetched successfully"));
+});
 
-    await sendPasswordResetEmail(user.email, resetLink);
+const changePassword = asyncHandler(async (req, res) => {
+  const id = req.user?._id;
 
-    logger.info("Password reset link generated from this Id: ", { userId: user.userId });
+  const result = await authService.changePassword(id, req.body);
 
-    return res.status(200).json(new ApiResponse(200, {}, "Password reset email send successfully"));
-})
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { result }, "Password changed successfully"));
+});
 
-const resetPassword = asyncHandler(async(req, res) => {
-    const token = req.params.token;
+const forgetPasswordRequest = asyncHandler(async (req, res) => {
+  const user = await authService.forgetPasswordRequest(req.body);
+  const resetLink = `${process.env.CLIENT_URL}/forget-password/${user.token}`;
 
-    const user = await authService.resetPassword(token, req.body);
-    await sendPasswResetSuccessEmail(user.email);
+  await sendPasswordResetEmail(user.email, resetLink);
 
-    logger.info("Password reset successful from this Id: ", { userId: user.userId });
-    return res.status(200).json(new ApiResponse(200, {}, "Password reset successfull"));
-})
+  logger.info("Password reset link generated from this Id: ", {
+    userId: user.userId,
+  });
 
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset email send successfully"));
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const token = req.params.token;
+
+  const user = await authService.resetPassword(token, req.body);
+  await sendPasswResetSuccessEmail(user.email);
+
+  logger.info("Password reset successful from this Id: ", {
+    userId: user.userId,
+  });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset successfull"));
+});
 
 export const authController = {
-    register,
-    login,
-    logout,
-    getUser,
-    changePassword,
-    forgetPasswordRequest,
-    resetPassword
-}
+  register,
+  login,
+  logout,
+  getUser,
+  changePassword,
+  forgetPasswordRequest,
+  resetPassword,
+};
