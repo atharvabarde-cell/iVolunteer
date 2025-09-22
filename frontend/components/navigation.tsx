@@ -11,6 +11,7 @@ export function Navigation() {
 
   const baseNavItems = [
     { href: "/", icon: Home, label: "Home" },
+    { href: "/posts", icon: Heart, label: "Posts" },
     { href: "/volunteer", icon: Heart, label: "Volunteer" },
     { href: "/donate", icon: DollarSign, label: "Donate" },
     { href: "/activities", icon: Building2, label: "Activities" }, // added Activities

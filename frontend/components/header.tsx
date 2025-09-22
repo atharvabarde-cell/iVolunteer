@@ -34,6 +34,7 @@ export function Header() {
 
   const baseNavItems = [
     { href: "/", label: "Home", icon: Home },
+    { href: "/posts", label: "Posts" },
     { href: "/volunteer", label: "Volunteer", icon: HeartHandshake },
     { href: "/donate", label: "Donate", icon: DollarSign },
     { href: "/activities", label: "Activities", icon: Calendar },
@@ -80,7 +81,7 @@ export function Header() {
                     : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
                 }`}
               >
-                <Icon size={18} />
+                {Icon && <Icon size={18} />}
                 {item.label}
                 {isActive(item.href) && (
                   <motion.div
@@ -181,7 +182,7 @@ export function Header() {
                         : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                     }`}
                   >
-                    <Icon size={20} />
+                    {Icon && <Icon size={20} />}
                     {item.label}
                   </Link>
                 );
