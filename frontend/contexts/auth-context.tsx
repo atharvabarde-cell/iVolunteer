@@ -11,6 +11,7 @@ export interface Badge {
 }
 
 export interface User {
+  _id: string
   id: string
   email: string
   name: string
@@ -105,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null)
     localStorage.removeItem("auth-user")
+    localStorage.removeItem("auth-token")
   }
 
   return <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>{children}</AuthContext.Provider>

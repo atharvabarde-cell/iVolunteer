@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit"
 
 import { errorHandler, notFoundHandler } from "./middlewares/globalErrorHandler.js"
 import authRouter from "./routes/auth.routes.js"
+import postRouter from "./routes/post.routes.js"
 // import communityRouter from "./routes/community.routes.js"
 
 const app = express();
@@ -35,6 +36,7 @@ app.use(globalRateLimiting);
 const authLimiter = limiter(15 * 60 * 1000, 100);
 
 app.use("/api/v1/auth", authLimiter, authRouter);
+app.use("/api/v1/posts", globalRateLimiting, postRouter);
 // app.use("/api/v1/communities", globalRateLimiting, communityRouter);
 
 app.use(errorHandler);

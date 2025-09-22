@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { EventsProvider } from "@/contexts/events-context"
 import { AdminProvider } from "@/contexts/admin-context"
 import { UserProvider } from "@/contexts/user-context"
+import { PostProvider } from "@/contexts/post-context"
 
 export const metadata: Metadata = {
   title: "Impact Rewards - Volunteer Platform",
@@ -34,7 +35,9 @@ html {
         <UserProvider>
         <AdminProvider>
         <AuthProvider>
-          <EventsProvider>{children}</EventsProvider>
+          <EventsProvider>
+            <PostProvider>{children}</PostProvider>
+          </EventsProvider>
         </AuthProvider>
         </AdminProvider>
         </UserProvider>

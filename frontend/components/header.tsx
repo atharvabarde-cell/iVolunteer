@@ -15,6 +15,7 @@ export function Header() {
   const baseNavItems = [
     { href: "/", label: "Home" },
     { href: "/dashboard", label: "Dashboard" },
+    { href: "/posts", label: "Posts" },
     { href: "/volunteer", label: "Volunteer" },
     { href: "/donate", label: "Donate" },
     { href: "/activities", label: "Activities" },

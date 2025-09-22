@@ -3,7 +3,7 @@ import { User } from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import { logger } from "../utils/logger.js";
 
-const authentication = async (req, res, next) => {
+export const authentication = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         const tokenFromHeader = authHeader?.startsWith("Bearer ")
@@ -11,6 +11,10 @@ const authentication = async (req, res, next) => {
         : null;
 
         const jwtToken = req.cookies.jwtToken || tokenFromHeader
+
+        if (!jwtToken) {
+            throw new ApiError(401, "Authentication token is required");
+        }
         
         const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET);
         if(!decoded) throw new ApiError(400, "Invalid request");
@@ -40,10 +44,12 @@ const authentication = async (req, res, next) => {
             name: error.name
         });
 
-        return res.status(500).json({
+        const statusCode = error instanceof ApiError ? error.statusCode : 500;
+        const message = error instanceof ApiError ? error.message : "Internal server error";
+        
+        return res.status(statusCode).json({
             success: false,
-            message: "Internal server error",
-            errorMessage: error.message
+            message: message
         });
     }
 }
@@ -57,6 +63,5 @@ export const authorizeRole = async(...role) => {
     }
 }
 
-// Export both the original name and the middleware alias
+// Export the middleware with both names for compatibility
 export const authMiddleware = authentication;
-export { authentication };
