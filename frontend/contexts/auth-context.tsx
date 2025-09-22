@@ -1,14 +1,8 @@
-"use client"
+"use client";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
-import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
-
-export type UserRole = "user" | "ngo" | "admin"
-
-export interface Badge {
-  name: string
-  earnedAt: string
-}
+export type UserRole = "user" | "ngo" | "admin" | "corporate";
 
 export interface User {
   _id: string
@@ -21,83 +15,134 @@ export interface User {
   volunteeredHours: number
   totalRewards: number
   completedEvents: string[]
-  badges: Badge[]
   createdAt: string
 }
 
 interface AuthContextType {
-  user: User | null
-  login: (email: string, password: string, role?: UserRole) => Promise<boolean>
-  signup: (email: string, password: string, name: string, role: UserRole) => Promise<boolean>
-  logout: () => void
-  isLoading: boolean
+  user: User | null;
+  isLoading: boolean;
+  login: (email: string, password: string, role?: UserRole) => Promise<boolean>;
+  signup: (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole
+  ) => Promise<boolean>;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("auth-user")
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
-    }
-    setIsLoading(false)
-  }, [])
+    const savedUser = localStorage.getItem("auth-user");
+    if (savedUser) setUser(JSON.parse(savedUser));
+    setIsLoading(false);
+  }, []);
 
-  const login = async (email: string, password: string, role: UserRole = "user"): Promise<boolean> => {
+  interface AuthResponse {
+    user: {
+      userId: string;
+      email: string;
+      name: string;
+      role: UserRole;
+    };
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+    };
+    message: string;
+  }
+
+  const signup = async (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole
+  ): Promise<boolean> => {
     setIsLoading(true);
-
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
-      });
-      const data = await response.json();
+      const { data } = await axios.post<AuthResponse>(
+        "http://localhost:5000/api/v1/auth/register",
+        { name, email, password, role },
+        { withCredentials: true } // if your backend uses cookies for JWT
+      );
 
-      if (response.ok) {
-        setUser(data.user);
-        localStorage.setItem("auth-user", JSON.stringify(data.user));
-        setIsLoading(false);
-        return true;
-      } else {
-        console.error("Login failed:", data.message);
-        setIsLoading(false);
-        return false;
+      // Map the response user to our User interface
+      const mappedUser: User = {
+        _id: data.user.userId,
+        id: data.user.userId,
+        email: data.user.email,
+        name: data.user.name,
+        role: data.user.role,
+        points: 0,
+        coins: 0,
+        volunteeredHours: 0,
+        totalRewards: 0,
+        completedEvents: [],
+        createdAt: new Date().toISOString()
+      };
+
+      setUser(mappedUser);
+      localStorage.setItem("auth-user", JSON.stringify(mappedUser));
+      if (data.tokens) {
+        localStorage.setItem("auth-token", data.tokens.accessToken);
+        localStorage.setItem("refresh-token", data.tokens.refreshToken);
       }
-    } catch (err) {
-      console.error("Login failed:", err);
+      setIsLoading(false);
+      return true;
+    } catch (err: any) {
+      console.error(
+        "Signup failed:",
+        err.response?.data?.message || err.message
+      );
       setIsLoading(false);
       return false;
     }
   };
 
-  const signup = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password: string,
+    role: UserRole = "user"
+  ): Promise<boolean> => {
     setIsLoading(true);
-
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, role }),
-      });
-      const data = await response.json();
+      const { data } = await axios.post<AuthResponse>(
+        "http://localhost:5000/api/v1/auth/login",
+        { email, password, role },
+        { withCredentials: true }
+      );
 
-      if (response.ok) {
-        setUser(data.user);
-        localStorage.setItem("auth-user", JSON.stringify(data.user));
-        setIsLoading(false);
-        return true;
-      } else {
-        console.error("Signup failed:", data.message);
-        setIsLoading(false);
-        return false;
-      }
-    } catch (err) {
-      console.error("Signup failed:", err);
+      // Map the response user to our User interface
+      const mappedUser: User = {
+        _id: data.user.userId,
+        id: data.user.userId,
+        email: data.user.email,
+        name: data.user.name,
+        role: data.user.role,
+        points: 0,
+        coins: 0,
+        volunteeredHours: 0,
+        totalRewards: 0,
+        completedEvents: [],
+        createdAt: new Date().toISOString()
+      };
+
+      setUser(mappedUser);
+      localStorage.setItem("auth-user", JSON.stringify(mappedUser));
+      localStorage.setItem("auth-token", data.tokens.accessToken);
+      localStorage.setItem("refresh-token", data.tokens.refreshToken);
+      setIsLoading(false);
+      return true;
+    } catch (err: any) {
+      console.error(
+        "Login failed:",
+        err.response?.data?.message || err.message
+      );
       setIsLoading(false);
       return false;
     }
@@ -109,13 +154,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("auth-token")
   }
 
-  return <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>{children}</AuthContext.Provider>
-}
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
-}
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  return context;
+};

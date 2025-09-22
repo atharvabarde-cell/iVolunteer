@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ["user", "ngo", "admin"],
+        enum: ["user", "ngo", "admin","corporate"],
         default: "user"
     },
     points: {
@@ -61,7 +61,8 @@ const userSchema = new mongoose.Schema({
 
     resetPasswordToken: {
         type: String,
-        unique: true
+        unique: true,
+        sparse: true
     },
 
     resetPasswordExpiresAt: {

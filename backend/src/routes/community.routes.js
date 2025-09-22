@@ -14,7 +14,7 @@ import {
     updateCommunityValidator,
     listQueryValidator
 } from '../validators/community.validators.js';
-import eventRouter from './community.events.routes.js';
+// import eventRouter from './community.events.routes.js';
 
 const router = express.Router();
 
@@ -38,6 +38,6 @@ router.route('/:id/leave')
     .post(leaveCommunity);
 
 // Mount event routes for communities
-router.use('/:communityId/events', eventRouter);
+// router.use('/:communityId/events', eventRouter);
 
 export default router;

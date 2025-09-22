@@ -1,23 +1,33 @@
 "use client";
 
+import React from "react";
+import { useAuth } from "@/contexts/auth-context";
+
+import Coinsystem from "@/components/Coinsystem";
+import Faq from "@/components/Faq";
+import Footer from "@/components/Footer";
+import Gamified from "@/components/Gamified";
+import { Header } from "@/components/header";
+import Howitworks from "@/components/Howitworks";
+import Hero from "@/components/ui/Hero";
+
 import Adminstats from "@/components/Adminstats";
 import Approvalqueueadmin from "@/components/Approvalqueueadmin";
+import CSRAnalytics from "@/components/Csranalytics";
 import Dailyquote from "@/components/Dailyquote";
-import Footer from "@/components/Footer";
-import { Header } from "@/components/header";
+import Eventbutton from "@/components/Eventbutton";
 import Ngoanalytics from "@/components/Ngoanalytics";
 import Ngoeventtable from "@/components/Ngoeventtable";
+import Sponsorshipopp from "@/components/Sponsorshipopp";
 import Useractivity from "@/components/Useractivity";
 import Useranalytics from "@/components/Useranalytics";
 import Usermanagementtable from "@/components/Usermanagementtable";
 import Userrewardstoredash from "@/components/Userrewardstoredash";
 
-import { useEffect, useState } from "react";
-
-// Example role-based dashboard components
+// Dashboard components
 function AdminDashboard() {
   return (
-    <section className="bg-[#f4f7fb] h-full w-full">
+    <section className="bg-[#f4f7fb] h-full w-full min-w-[350px]">
       <Header />
       <div className="p-6">
         <h1 className="text-4xl font-bold">Admin Dashboard</h1>
@@ -31,57 +41,82 @@ function AdminDashboard() {
       </h2>
       <Usermanagementtable />
       <Approvalqueueadmin />
-      <Footer/>
+      <Footer />
     </section>
   );
 }
 
 function NGODashboard() {
-  return <section  className="bg-[#f4f7fb] h-full">
-    <Header/>
-    <Ngoanalytics/>
-    <Ngoeventtable/>
-    <Footer/>
-  </section>
+  return (
+    <section className="bg-[#f4f7fb] h-full min-w-[350px]">
+      <Header />
+      <Ngoanalytics />
+      <Eventbutton />
+      <Ngoeventtable />
+      <Footer />
+    </section>
+  );
 }
 
 function VolunteerDashboard() {
-  return <section className="w-full h-full bg-gray-50">
-    <Header/>
-    <Useranalytics/>
-    <Dailyquote/>
-    <Useractivity/>
-    <Userrewardstoredash/>
-    <Footer/>
-  </section>
+  return (
+    <section className="w-full h-full bg-gray-50 min-w-[350px]">
+      <Header />
+      <Useranalytics />
+      <Dailyquote />
+      <Useractivity />
+      <Userrewardstoredash />
+      <Footer />
+    </section>
+  );
 }
 
 function CorporateDashboard() {
-  return <h1 className="text-2xl font-bold">Corporate Dashboard</h1>;
+  return (
+    <section>
+      <Header />
+      <Sponsorshipopp />
+      <CSRAnalytics />
+      <Footer />
+    </section>
+  );
+}
+
+// Main landing page for non-logged-in users
+function LandingPage() {
+  return (
+    <div className="min-w-[350px]">
+      <Header />
+      <Hero />
+      <Gamified />
+      <Howitworks />
+      <Coinsystem />
+      <Faq />
+      <Footer />
+    </div>
+  );
 }
 
 export default function Page() {
-  const [role, setRole] = useState<string | null>(null);
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    const storedRole = localStorage.getItem("role");
-    setRole(storedRole);
-  }, []);
+  if (isLoading) return <p className="p-6">Loading...</p>;
 
-  if (!role) {
-    return <p className="p-6">Loading dashboard...</p>;
+  if (user) {
+    switch (user.role) {
+      case "admin":
+        return <AdminDashboard />;
+      case "ngo":
+        return <NGODashboard />;
+      case "user": // volunteer
+        return <VolunteerDashboard />;
+      case "corporate":
+        return <CorporateDashboard />;
+      default:
+        return <p className="p-6">Unknown role. Please contact support.</p>;
+    }
   }
 
-  switch (role) {
-    case "admin":
-      return <AdminDashboard />;
-    case "ngo":
-      return <NGODashboard />;
-    case "volunteer":
-      return <VolunteerDashboard />;
-    case "corporate":
-      return <CorporateDashboard />;
-    default:
-      return <p className="p-6">No role found. Please log in.</p>;
-  }
+  // If user is not logged in, show the landing page
+  return <LandingPage />;
 }

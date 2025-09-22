@@ -18,7 +18,7 @@ export const createSession = async (user) => {
             refreshToken: hashedToken,
             expiresAt
         });
-    
+        
         await session.save();
     
         return {accessToken, refreshToken: rawToken}

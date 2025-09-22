@@ -41,7 +41,6 @@ export const getPosts = async (req, res) => {
             .populate('reactions.user', 'name profilePicture');
 
         const total = await Post.countDocuments();
-
         res.json({
             posts,
             currentPage: page,

@@ -20,9 +20,9 @@ const register = async(data) => {
         role: data.role
     });
 
-    await user.save();
+   await user.save();
+   return user
 
-    return {userId: user._id, email: user.email, name: user.name, role: user.role}
 }
 
 
