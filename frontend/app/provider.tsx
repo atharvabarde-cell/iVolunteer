@@ -1,0 +1,38 @@
+"use client";
+
+import { ReactNode } from "react";
+import { NGOProvider } from "@/contexts/ngo-context";
+import { AuthProvider } from "@/contexts/auth-context";
+// import { EventsProvider } from "@/contexts/events-context";
+import { AdminProvider } from "@/contexts/admin-context";
+import { UserProvider } from "@/contexts/user-context";
+import { PostProvider } from "@/contexts/post-context";
+import { ToastContainer } from "react-toastify";
+import { CorporateProvider } from "@/contexts/corporate-context";
+
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <UserProvider>
+      <AdminProvider>
+        <AuthProvider>
+          <NGOProvider>
+            <CorporateProvider>
+              <PostProvider>
+              {children}
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar
+                closeOnClick
+                pauseOnHover
+                draggable
+                theme="light"
+              />
+              </PostProvider>
+            </CorporateProvider>
+          </NGOProvider>
+        </AuthProvider>
+      </AdminProvider>
+    </UserProvider>
+  );
+}

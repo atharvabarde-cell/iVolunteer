@@ -136,6 +136,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem("auth-user", JSON.stringify(mappedUser));
       localStorage.setItem("auth-token", data.tokens.accessToken);
       localStorage.setItem("refresh-token", data.tokens.refreshToken);
+
+      setUser(data.user);
+      localStorage.setItem("auth-user", JSON.stringify(data.user));
+      localStorage.setItem("auth-token", data.tokens.accessToken);
+
       setIsLoading(false);
       return true;
     } catch (err: any) {
