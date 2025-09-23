@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Sparkles, QuoteIcon } from "lucide-react";
+import { toast } from "react-toastify";
 
 const quotes = [
   "Believe you can and you're halfway there.",
@@ -31,7 +32,7 @@ const Dailyquote = () => {
     const today = new Date().toISOString().split("T")[0];
     localStorage.setItem("lastCollectedDate", today);
     setCollected(true);
-    alert("🎉 You collected +10 coins!");
+    toast.success("You collected +10 coins!");
   };
 
   return (
