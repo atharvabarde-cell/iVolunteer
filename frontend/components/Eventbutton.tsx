@@ -1,10 +1,10 @@
 "use client";
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
+import React, { useState } from "react";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 
 const Eventbutton = () => {
-      const [isHovered, setIsHovered] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
 
   return (
@@ -12,8 +12,12 @@ const Eventbutton = () => {
       <div className="mt-12 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <h3 className="text-3xl font-semibold text-gray-800 mb-2">Manage Your Events</h3>
-            <p className="text-gray-600 text-md font-medium">Create and organize volunteer events to maximize your impact</p>
+            <h3 className="text-3xl font-semibold text-gray-800 mb-2">
+              Manage Your Events
+            </h3>
+            <p className="text-gray-600 text-md font-medium">
+              Create and organize volunteer events to maximize your impact
+            </p>
           </div>
           <button
             className={`
@@ -32,9 +36,7 @@ const Eventbutton = () => {
             `}
           >
             <Plus size={18} />
-            <Link  href="/dashboard/add-event">
-            Add Event
-            </Link>
+            <Link href="/add-event">Add Event</Link>
           </button>
         </div>
       </div>

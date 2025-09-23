@@ -12,6 +12,7 @@ import {
 import authRouter from "./routes/auth.routes.js";
 // import communityRouter from "./routes/community.routes.js"
 import communityRouter from "./routes/community.routes.js";
+import eventRouter from "./routes/event.routes.js";
 
 const app = express();
 
@@ -45,6 +46,7 @@ const authLimiter = limiter(15 * 60 * 1000, 100);
 
 app.use("/api/v1/auth", authLimiter, authRouter);
 app.use("/api/v1/communities", globalRateLimiting, communityRouter);
+app.use("/api/v1/event", eventRouter);
 
 app.use(errorHandler);
 app.use(notFoundHandler);

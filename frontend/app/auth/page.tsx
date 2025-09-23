@@ -58,7 +58,7 @@ export default function AuthPage() {
       );
       if (success) {
         toast.success("Account created successfully!");
-        router.push("/dashboard");
+        router.push("/");
       } else {
         toast.error("Signup failed");
       }
@@ -66,7 +66,7 @@ export default function AuthPage() {
       const success = await login(data.email, data.password, data.role as any);
       if (success) {
         toast.success("Login successful!");
-        router.push("/dashboard");
+        router.push("/");
       } else {
         toast.info("Login failed. Please check your credentials.");
       }
