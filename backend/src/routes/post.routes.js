@@ -5,7 +5,9 @@ import {
     createPost,
     getPosts,
     addComment,
+    deleteComment,
     toggleReaction,
+    updatePost,
     deletePost
 } from '../controllers/post.controller.js';
 
@@ -16,7 +18,9 @@ router.get('/', getPosts);
 
 // Protected routes (require authentication)
 router.post('/', authMiddleware, upload.single('image'), createPost);
+router.put('/:postId', authMiddleware, upload.single('image'), updatePost);
 router.post('/:postId/comments', authMiddleware, addComment);
+router.delete('/:postId/comments/:commentId', authMiddleware, deleteComment);
 router.post('/:postId/reactions', authMiddleware, toggleReaction);
 router.delete('/:postId', authMiddleware, deletePost);
 

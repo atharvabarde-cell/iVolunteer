@@ -51,7 +51,9 @@ interface PostContextType {
     error: string | null;
     getPosts: (page?: number) => Promise<{ posts: Post[]; currentPage: number; totalPages: number; totalPosts: number }>;
     createPost: (formData: FormData) => Promise<Post>;
+    updatePost: (postId: string, formData: FormData) => Promise<Post>;
     addComment: (postId: string, content: string) => Promise<Comment>;
+    deleteComment: (postId: string, commentId: string) => Promise<void>;
     toggleReaction: (postId: string, type: Reaction['type']) => Promise<Reaction[]>;
     deletePost: (postId: string) => Promise<void>;
 }
@@ -114,6 +116,25 @@ export function PostProvider({ children }: PostProviderProps) {
         }
     };
 
+    const updatePost = async (postId: string, formData: FormData) => {
+        try {
+            setLoading(true);
+            const response = await api.put<Post>(`/api/v1/posts/${postId}`, formData);
+            setPosts(prevPosts =>
+                prevPosts.map(post =>
+                    post._id === postId ? response.data : post
+                )
+            );
+            return response.data;
+        } catch (err) {
+            const message = handleError(err);
+            setError(message || 'Error updating post');
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const addComment = async (postId: string, content: string) => {
         try {
             const response = await api.post<Comment>(`/api/v1/posts/${postId}/comments`, { content });
@@ -128,6 +149,23 @@ export function PostProvider({ children }: PostProviderProps) {
         } catch (err) {
             const message = handleError(err);
             setError(message || 'Error adding comment');
+            throw err;
+        }
+    };
+
+    const deleteComment = async (postId: string, commentId: string) => {
+        try {
+            await api.delete(`/api/v1/posts/${postId}/comments/${commentId}`);
+            setPosts(prevPosts =>
+                prevPosts.map(post =>
+                    post._id === postId
+                        ? { ...post, comments: post.comments.filter(comment => comment._id !== commentId) }
+                        : post
+                )
+            );
+        } catch (err) {
+            const message = handleError(err);
+            setError(message || 'Error deleting comment');
             throw err;
         }
     };
@@ -169,7 +207,9 @@ export function PostProvider({ children }: PostProviderProps) {
                 error,
                 getPosts,
                 createPost,
+                updatePost,
                 addComment,
+                deleteComment,
                 toggleReaction,
                 deletePost,
             }}

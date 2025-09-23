@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import Image from 'next/image';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { EditPost } from './edit-post';
 import { usePosts } from '@/contexts/post-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +29,8 @@ export function PostDisplay({ post }: PostDisplayProps) {
     const [comment, setComment] = useState('');
     const [isCommenting, setIsCommenting] = useState(false);
     const [showReactions, setShowReactions] = useState(false);
-    const { addComment, toggleReaction, deletePost } = usePosts();
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const { addComment, deleteComment, toggleReaction, deletePost } = usePosts();
     const { user } = useAuth();
     const { toast } = useToast();
 
@@ -102,6 +104,24 @@ export function PostDisplay({ post }: PostDisplayProps) {
         }
     };
 
+    const handleDeleteComment = async (commentId: string) => {
+        if (!user) return;
+
+        try {
+            await deleteComment(post._id, commentId);
+            toast({
+                title: 'Success',
+                description: 'Comment deleted successfully',
+            });
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to delete comment',
+                variant: 'destructive'
+            });
+        }
+    };
+
     const userReaction = user 
         ? post.reactions.find(reaction => reaction.user._id === user._id)?.type 
         : null;
@@ -122,13 +142,25 @@ export function PostDisplay({ post }: PostDisplayProps) {
                         <h3 className="font-semibold">{post.user.name}</h3>
                         <time className="text-sm text-gray-500">
                             {format(new Date(post.createdAt), 'PPpp')}
+                            {post.updatedAt !== post.createdAt && (
+                                <span className="ml-1">(edited)</span>
+                            )}
                         </time>
                     </div>
                 </div>
                 {user && user._id === post.user._id && (
-                    <Button variant="ghost" size="sm" onClick={handleDelete}>
-                        Delete
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setIsEditModalOpen(true)}
+                        >
+                            Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={handleDelete}>
+                            Delete
+                        </Button>
+                    </div>
                 )}
             </header>
 
@@ -197,11 +229,23 @@ export function PostDisplay({ post }: PostDisplayProps) {
                                 />
                             </div>
                             <div className="flex-1 bg-gray-100 rounded-lg p-2">
-                                <div className="flex items-baseline gap-2">
-                                    <span className="font-semibold">{comment.user.name}</span>
-                                    <time className="text-xs text-gray-500">
-                                        {format(new Date(comment.createdAt), 'PPpp')}
-                                    </time>
+                                <div className="flex items-baseline justify-between">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="font-semibold">{comment.user.name}</span>
+                                        <time className="text-xs text-gray-500">
+                                            {format(new Date(comment.createdAt), 'PPpp')}
+                                        </time>
+                                    </div>
+                                    {user && (user._id === comment.user._id || user._id === post.user._id) && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleDeleteComment(comment._id)}
+                                            className="h-auto p-1 text-xs text-red-500 hover:text-red-700"
+                                        >
+                                            Delete
+                                        </Button>
+                                    )}
                                 </div>
                                 <p className="text-gray-700">{comment.content}</p>
                             </div>
@@ -224,6 +268,13 @@ export function PostDisplay({ post }: PostDisplayProps) {
                     </Button>
                 </div>
             </form>
+
+            {/* Edit Post Modal */}
+            <EditPost 
+                post={post} 
+                isOpen={isEditModalOpen} 
+                onClose={() => setIsEditModalOpen(false)} 
+            />
         </article>
     );
 }

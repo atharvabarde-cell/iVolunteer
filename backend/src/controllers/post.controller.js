@@ -77,6 +77,37 @@ export const addComment = async (req, res) => {
     }
 };
 
+// Delete a comment from a post
+export const deleteComment = async (req, res) => {
+    try {
+        const { postId, commentId } = req.params;
+        const post = await Post.findById(postId);
+        
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        const comment = post.comments.id(commentId);
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
+        // Check if the user is the owner of the comment or the post
+        if (comment.user.toString() !== req.user._id.toString() && 
+            post.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized to delete this comment' });
+        }
+
+        post.comments.pull(commentId);
+        await post.save();
+
+        res.json({ message: 'Comment deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        res.status(500).json({ message: 'Error deleting comment' });
+    }
+};
+
 // Add or update reaction to a post
 export const toggleReaction = async (req, res) => {
     try {
@@ -118,6 +149,50 @@ export const toggleReaction = async (req, res) => {
     } catch (error) {
         console.error('Error toggling reaction:', error);
         res.status(500).json({ message: 'Error toggling reaction' });
+    }
+};
+
+// Update a post
+export const updatePost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.postId);
+        
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        // Check if the user is the owner of the post
+        if (post.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized to update this post' });
+        }
+
+        // Update description if provided
+        if (req.body.description !== undefined) {
+            post.description = req.body.description;
+        }
+
+        // Update image if provided
+        if (req.file) {
+            // Delete old image from Cloudinary
+            await deleteImage(post.cloudinaryPublicId);
+            
+            // Update with new image
+            post.imageUrl = req.file.path;
+            post.cloudinaryPublicId = req.file.filename;
+        }
+
+        // Reset all comments when post is updated
+        post.comments = [];
+
+        await post.save();
+        await post.populate('user', 'name profilePicture');
+        await post.populate('comments.user', 'name profilePicture');
+        await post.populate('reactions.user', 'name profilePicture');
+
+        res.json(post);
+    } catch (error) {
+        console.error('Error updating post:', error);
+        res.status(500).json({ message: 'Error updating post' });
     }
 };
 
