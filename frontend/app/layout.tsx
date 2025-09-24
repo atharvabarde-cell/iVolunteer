@@ -33,12 +33,12 @@ html {
         `}</style>
       </head>
       <body>
-        <UserProvider>
-          <AdminProvider>
-            <AuthProvider>
+        <AuthProvider>
+          <UserProvider>
+            <AdminProvider>
               <EventsProvider>
-            <PostProvider>{children}</PostProvider>
-          </EventsProvider>
+                <PostProvider>{children}</PostProvider>
+              </EventsProvider>
               <ToastContainer
                 position="top-right"
                 autoClose={3000}
@@ -48,9 +48,9 @@ html {
                 draggable
                 theme="light"
               />
-            </AuthProvider>
-          </AdminProvider>
-        </UserProvider>
+            </AdminProvider>
+          </UserProvider>
+        </AuthProvider>
       </body>
     </html>
   );

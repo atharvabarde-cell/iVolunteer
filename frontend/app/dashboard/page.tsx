@@ -8,6 +8,7 @@ import Faq from "@/components/Faq";
 import Footer from "@/components/Footer";
 import Gamified from "@/components/Gamified";
 import { Header } from "@/components/header";
+import { Navigation } from "@/components/navigation";
 import Howitworks from "@/components/Howitworks";
 import Hero from "@/components/ui/Hero";
 
@@ -60,14 +61,17 @@ function NGODashboard() {
 
 function VolunteerDashboard() {
   return (
-    <section className="w-full h-full bg-gray-50 min-w-[350px]">
+    <div className="w-full min-h-screen bg-gray-50 min-w-[350px]">
       <Header />
-      <Useranalytics />
-      <Dailyquote />
-      <Useractivity />
-      <Userrewardstoredash />
+      <div className="pt-20 pb-8">
+        <Useranalytics />
+        <Dailyquote />
+        <Useractivity />
+        <Userrewardstoredash />
+      </div>
+      <Navigation />
       <Footer />
-    </section>
+    </div>
   );
 }
 

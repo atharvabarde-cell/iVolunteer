@@ -23,18 +23,40 @@ const coinsSchema = Joi.object({
 });
 
 const spendCoinsSchema = Joi.object({
-    coins: Joi.number()
+    amount: Joi.number()
         .min(1)
         .required()
         .messages({
-            "number.base": "Coins must be a number",
+            "number.base": "Amount must be a number",
             "number.min": "Must spend at least 1 coin",
-            "any.required": "Coins amount is required"
+            "any.required": "Amount is required"
+        }),
+    itemName: Joi.string()
+        .required()
+        .messages({
+            "string.base": "Item name must be a string",
+            "any.required": "Item name is required"
+        }),
+    itemId: Joi.string()
+        .optional()
+        .messages({
+            "string.base": "Item ID must be a string"
+        })
+});
+
+const dailyRewardSchema = Joi.object({
+    type: Joi.string()
+        .valid("daily_quote", "login_bonus", "activity_completion")
+        .default("daily_quote")
+        .messages({
+            "string.base": "Type must be a string",
+            "any.only": "Type must be one of: daily_quote, login_bonus, activity_completion"
         })
 });
 
 export const rewardsValidator = {
     pointsSchema,
     coinsSchema,
-    spendCoinsSchema
+    spendCoinsSchema,
+    dailyRewardSchema
 };

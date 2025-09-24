@@ -8,6 +8,7 @@ import rateLimit from "express-rate-limit";
 import { errorHandler, notFoundHandler } from "./middlewares/globalErrorHandler.js"
 import authRouter from "./routes/auth.routes.js"
 import postRouter from "./routes/post.routes.js"
+import rewardsRouter from "./routes/rewards.routes.js"
 // import communityRouter from "./routes/community.routes.js"
 import communityRouter from "./routes/community.routes.js";
 
@@ -43,6 +44,7 @@ const authLimiter = limiter(15 * 60 * 1000, 100);
 
 app.use("/api/v1/auth", authLimiter, authRouter);
 app.use("/api/v1/posts", globalRateLimiting, postRouter);
+app.use("/api/v1/rewards", globalRateLimiting, rewardsRouter);
 // app.use("/api/v1/communities", globalRateLimiting, communityRouter);
 
 app.use(errorHandler);
