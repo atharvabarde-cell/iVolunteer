@@ -11,6 +11,7 @@ import postRouter from "./routes/post.routes.js"
 import rewardsRouter from "./routes/rewards.routes.js"
 // import communityRouter from "./routes/community.routes.js"
 import communityRouter from "./routes/community.routes.js";
+import eventRouter from "./routes/event.routes.js";
 
 const app = express();
 
@@ -43,9 +44,14 @@ app.use(globalRateLimiting);
 const authLimiter = limiter(15 * 60 * 1000, 100);
 
 app.use("/api/v1/auth", authLimiter, authRouter);
+
 app.use("/api/v1/posts", globalRateLimiting, postRouter);
 app.use("/api/v1/rewards", globalRateLimiting, rewardsRouter);
 // app.use("/api/v1/communities", globalRateLimiting, communityRouter);
+
+app.use("/api/v1/communities", globalRateLimiting, communityRouter);
+app.use("/api/v1/event", eventRouter);
+
 
 app.use(errorHandler);
 app.use(notFoundHandler);

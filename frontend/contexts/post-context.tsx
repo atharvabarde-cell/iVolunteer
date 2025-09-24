@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
-import api from '@/lib/axios';
+import api from '@/lib/api';
 
 interface ApiError {
     message: string;

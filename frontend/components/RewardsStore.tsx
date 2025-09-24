@@ -6,7 +6,7 @@ import { Gift, Coins, Zap, ShoppingCart, Loader2 } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "react-toastify";
-import axios from "axios";
+import api from "@/lib/api";
 
 interface RewardItem {
   id: string;
@@ -86,8 +86,7 @@ const RewardsStore = () => {
       setPurchasingItem(item.id);
       const token = localStorage.getItem("auth-token");
 
-      const response = await axios.post(
-        "http://localhost:5000/api/v1/rewards/spend",
+      const response = await api.post("/v1/rewards/spend",
         {
           amount: item.coins,
           itemName: item.title,

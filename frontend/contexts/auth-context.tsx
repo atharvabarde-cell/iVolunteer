@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { toast } from "@/hooks/use-toast";
 
 export type UserRole = "user" | "ngo" | "admin" | "corporate";
 
@@ -41,6 +42,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const savedUser = localStorage.getItem("auth-user");
     if (savedUser) setUser(JSON.parse(savedUser));
     setIsLoading(false);
+  }, []);
+
+  // Listen for token expiration events
+  useEffect(() => {
+    const handleTokenExpired = () => {
+      console.log('Token expired event received, logging out user');
+      
+      // Show a user-friendly toast notification
+      toast({
+        title: "Session Expired",
+        description: "Your session has expired. Please log in again.",
+        variant: "destructive",
+      });
+      
+      logout();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('token-expired', handleTokenExpired);
+      
+      return () => {
+        window.removeEventListener('token-expired', handleTokenExpired);
+      };
+    }
   }, []);
 
   interface AuthResponse {
@@ -136,6 +161,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem("auth-user", JSON.stringify(mappedUser));
       localStorage.setItem("auth-token", data.tokens.accessToken);
       localStorage.setItem("refresh-token", data.tokens.refreshToken);
+
+      setUser(data.user);
+      localStorage.setItem("auth-user", JSON.stringify(data.user));
+      localStorage.setItem("auth-token", data.tokens.accessToken);
+
       setIsLoading(false);
       return true;
     } catch (err: any) {
@@ -152,6 +182,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null)
     localStorage.removeItem("auth-user")
     localStorage.removeItem("auth-token")
+    localStorage.removeItem("refresh-token")
+    console.log('User logged out successfully')
   }
 
   return (

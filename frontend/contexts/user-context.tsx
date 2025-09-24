@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import axios from "axios";
 import { useAuth } from "./auth-context";
+import api from "@/lib/api";
 
 type UserContextType = {
   activeCoins: number;
@@ -44,7 +44,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       const token = localStorage.getItem("auth-token");
       
-      const response = await axios.get("http://localhost:5000/api/v1/rewards/stats", {
+      const response = await api.get("http://localhost:5000/api/v1/rewards/stats", {
         headers: {
           Authorization: `Bearer ${token}`
         },
@@ -76,7 +76,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     try {
       const token = localStorage.getItem("auth-token");
       
-      const response = await axios.post(
+      const response = await api.post(
         "http://localhost:5000/api/v1/rewards/daily-claim",
         { type },
         {
