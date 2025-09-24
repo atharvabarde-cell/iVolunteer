@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { Sparkles, QuoteIcon } from "lucide-react";
 import { toast } from "react-toastify";
+import { useUser } from "@/contexts/user-context";
+import { useAuth } from "@/contexts/auth-context";
 
 const quotes = [
   "Believe you can and you're halfway there.",
@@ -14,25 +16,36 @@ const quotes = [
 ];
 
 const Dailyquote = () => {
-  const [collected, setCollected] = useState(false);
   const [todayQuote, setTodayQuote] = useState("");
+  const [isClaimingReward, setIsClaimingReward] = useState(false);
+  const { dailyRewardClaimed, claimDailyReward, refreshUserStats } = useUser();
+  const { user } = useAuth();
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
     const quoteIndex = new Date().getDate() % quotes.length;
     setTodayQuote(quotes[quoteIndex]);
-
-    const lastCollected = localStorage.getItem("lastCollectedDate");
-    if (lastCollected === today) {
-      setCollected(true);
-    }
   }, []);
 
-  const handleCollect = () => {
-    const today = new Date().toISOString().split("T")[0];
-    localStorage.setItem("lastCollectedDate", today);
-    setCollected(true);
-    toast.success("You collected +10 coins!");
+  const handleCollect = async () => {
+    if (!user || dailyRewardClaimed || isClaimingReward) return;
+    
+    try {
+      setIsClaimingReward(true);
+      const success = await claimDailyReward("daily_quote");
+      
+      if (success) {
+        toast.success("You collected +10 coins!");
+        // Refresh user stats to get updated coin count
+        await refreshUserStats();
+      } else {
+        toast.error("Failed to claim daily reward. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error claiming daily reward:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsClaimingReward(false);
+    }
   };
 
   return (
@@ -63,17 +76,18 @@ const Dailyquote = () => {
             Collect your daily bonus of 10 coins for motivation!
           </p>
 
-          {!collected ? (
+          {!dailyRewardClaimed && user ? (
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={handleCollect}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+              disabled={isClaimingReward}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Sparkles className="w-4 h-4" />
-              Collect 10 Coins
+              {isClaimingReward ? "Claiming..." : "Collect 10 Coins"}
             </motion.button>
-          ) : (
+          ) : dailyRewardClaimed ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -92,6 +106,14 @@ const Dailyquote = () => {
                 />
               </svg>
               <span className="font-medium">Today's reward collected!</span>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="inline-flex items-center gap-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-lg"
+            >
+              <span className="font-medium">Please login to claim rewards</span>
             </motion.div>
           )}
         </div>

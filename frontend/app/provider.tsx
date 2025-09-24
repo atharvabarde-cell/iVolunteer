@@ -12,9 +12,9 @@ import { CorporateProvider } from "@/contexts/corporate-context";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <UserProvider>
-      <AdminProvider>
-        <AuthProvider>
+    <AuthProvider>
+      <UserProvider>
+        <AdminProvider>
           <NGOProvider>
             <CorporateProvider>
               <PostProvider>
@@ -31,8 +31,8 @@ export function Providers({ children }: { children: ReactNode }) {
               </PostProvider>
             </CorporateProvider>
           </NGOProvider>
-        </AuthProvider>
-      </AdminProvider>
-    </UserProvider>
+        </AdminProvider>
+      </UserProvider>
+    </AuthProvider>
   );
 }

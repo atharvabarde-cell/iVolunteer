@@ -1,11 +1,13 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Coins, Award, Flame, PiggyBank, Wallet } from "lucide-react";
+import { Coins, Award, Flame, PiggyBank, Wallet, Loader2 } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
+import { useAuth } from "@/contexts/auth-context";
 
 const Useranalytics = () => {
-  const { activeCoins, totalCoinsEarned, totalSpend, badges, streak } = useUser();
+  const { activeCoins, totalCoinsEarned, totalSpend, badges, streak, isLoading } = useUser();
+  const { user } = useAuth();
 
   const stats = [
     {
@@ -50,6 +52,41 @@ const Useranalytics = () => {
     },
   ];
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <section className="px-4 py-8 md:px-8 md:py-12 lg:px-16 lg:py-16 bg-gray-50">
+        <div className="max-w-8xl mx-auto">
+          <motion.h2 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-3xl md:text-4xl font-bold text-gray-800 mb-6 md:mb-10"
+          >
+            Welcome back, {user?.name || 'User'}
+          </motion.h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white border-l-4 border-gray-300 rounded-lg p-5 shadow-sm flex flex-col justify-between h-full"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+                  <div className="p-2 rounded-lg bg-gray-100">
+                    <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                  </div>
+                </div>
+                <div className="h-8 bg-gray-200 rounded w-16 animate-pulse"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="px-4 py-8 md:px-8 md:py-12 lg:px-16 lg:py-16 bg-gray-50">
       <div className="max-w-8xl mx-auto">
@@ -59,7 +96,7 @@ const Useranalytics = () => {
           transition={{ duration: 0.4 }}
           className="text-3xl md:text-4xl font-bold text-gray-800 mb-6 md:mb-10"
         >
-          Welcome back, Sarah
+          Welcome back, {user?.name || 'User'}
         </motion.h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">

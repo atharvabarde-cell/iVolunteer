@@ -13,7 +13,7 @@ export const generateJwtToken = (user) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "30m" }
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "30d" }
   );
 
 
