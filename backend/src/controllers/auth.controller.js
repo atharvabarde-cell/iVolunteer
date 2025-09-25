@@ -1,11 +1,14 @@
 import { authService } from "../services/auth.service.js";
 import { createSession } from "../services/session.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { setCookies } from "../utils/jwt.utils.js";
+import { setCookies, clearCookies } from "../utils/jwt.utils.js";
 import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const register = asyncHandler(async(req, res) => {
+    console.log("Registration request received:", req.body);
     const user = await authService.register(req.body);
+    console.log("User created with coins:", user.coins);
 
     // Wrap session creation in try/catch to catch errors
     let tokens;
@@ -18,7 +21,25 @@ const register = asyncHandler(async(req, res) => {
 
     setCookies(res, tokens.accessToken, tokens.refreshToken);
 
-    return res.status(201).json({user, message: "User registered successfully"});
+    // Return user info including coins
+    const userResponse = {
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        coins: user.coins
+    };
+
+    console.log("Registration response:", userResponse);
+
+    return res.status(201).json({
+        user: userResponse, 
+        tokens: {
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken
+        },
+        message: "User registered successfully! You've been awarded 50 coins as a welcome bonus!"
+    });
 });
 
 const login = asyncHandler(async (req, res) => {

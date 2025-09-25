@@ -2,6 +2,7 @@ import { User } from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { logger } from "../utils/logger.js";
+import { RegistrationReward } from "../models/RegistrationReward.js";
 
 // Model to track daily rewards
 import mongoose from "mongoose";
@@ -145,8 +146,13 @@ export const rewardsController = {
                 date: today
             });
 
-            // Calculate total coins earned (lifetime)
-            const totalCoinsEarned = await DailyReward.aggregate([
+            // Calculate total coins earned (lifetime) - include both daily rewards and registration bonus
+            const dailyCoinsEarned = await DailyReward.aggregate([
+                { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+                { $group: { _id: null, total: { $sum: "$coins" } } }
+            ]);
+
+            const registrationCoinsEarned = await RegistrationReward.aggregate([
                 { $match: { userId: new mongoose.Types.ObjectId(userId) } },
                 { $group: { _id: null, total: { $sum: "$coins" } } }
             ]);
@@ -155,7 +161,9 @@ export const rewardsController = {
             const streak = await calculateStreak(userId);
 
             // Calculate total spent (assuming coins can only be spent, so totalEarned - currentCoins = spent)
-            const totalEarned = totalCoinsEarned[0]?.total || 0;
+            const dailyCoins = dailyCoinsEarned[0]?.total || 0;
+            const registrationCoins = registrationCoinsEarned[0]?.total || 0;
+            const totalEarned = dailyCoins + registrationCoins;
             const totalSpent = Math.max(0, totalEarned - user.coins);
 
             const rewardStatus = {
