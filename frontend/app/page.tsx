@@ -23,6 +23,8 @@ import Useractivity from "@/components/Useractivity";
 import Useranalytics from "@/components/Useranalytics";
 import Usermanagementtable from "@/components/Usermanagementtable";
 import Userrewardstoredash from "@/components/Userrewardstoredash";
+import DonationEventButton from "@/components/Donationeventbutton";
+import Donationeventbutton from "@/components/Donationeventbutton";
 
 // Dashboard components
 function AdminDashboard() {
@@ -51,7 +53,10 @@ function NGODashboard() {
     <section className="bg-[#f4f7fb] h-full min-w-[350px]">
       <Header />
       <Ngoanalytics />
+      <div className="flex md:flex-row flex-col w-full md:justify-around justify-center items-center">
       <Eventbutton />
+      <Donationeventbutton/>
+      </div>
       <Ngoeventtable />
       <Footer />
     </section>

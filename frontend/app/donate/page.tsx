@@ -1,185 +1,281 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Header } from "@/components/header"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Heart, Users, BookOpen, Utensils } from "lucide-react"
-import { useAppState } from "@/hooks/use-app-state"
-import { Navigation } from "@/components/navigation"
+import { useEffect, useState } from "react";
+import { Header } from "@/components/header";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { toast } from "react-toastify";
+import { useDonationEvent, DonationEvent } from "@/contexts/donationevents-context";
 
 export default function DonatePage() {
-  const { addCoins, addBadge } = useAppState()
-  const [donations, setDonations] = useState<string[]>([])
-  const [customAmount, setCustomAmount] = useState("")
+  const { events, fetchEvents, loading, handleRazorpayPayment } = useDonationEvent();
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
+  const quickAmounts = [100, 250, 500, 1000]; // Converted to Rupees
 
-  const donationCauses = [
-    {
-      id: "education",
-      title: "Education for All",
-      organization: "Global Education Fund",
-      description: "Help provide quality education to underprivileged children worldwide",
-      icon: BookOpen,
-      raised: 45000,
-      goal: 100000,
-      category: "Education",
-      multiplier: 1.5,
-    },
-    {
-      id: "hunger",
-      title: "Fight Against Hunger",
-      organization: "World Food Initiative",
-      description: "Provide meals to families facing food insecurity",
-      icon: Utensils,
-      raised: 78000,
-      goal: 120000,
-      category: "Hunger Relief",
-      multiplier: 2.0,
-    },
-    {
-      id: "healthcare",
-      title: "Healthcare Access",
-      organization: "Medical Aid International",
-      description: "Bring medical care to remote and underserved communities",
-      icon: Heart,
-      raised: 32000,
-      goal: 80000,
-      category: "Healthcare",
-      multiplier: 1.8,
-    },
-    {
-      id: "disaster",
-      title: "Disaster Relief Fund",
-      organization: "Emergency Response Network",
-      description: "Provide immediate aid to disaster-affected communities",
-      icon: Users,
-      raised: 15000,
-      goal: 50000,
-      category: "Emergency",
-      multiplier: 2.5,
-    },
-  ]
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+  
 
-  const quickAmounts = [10, 25, 50, 100]
+  const handleCustomDonate = (eventId: string) => {
+    const amount = Number(customAmounts[eventId]);
+    if (amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    handleRazorpayPayment(eventId, amount);
+    setCustomAmounts({ ...customAmounts, [eventId]: "" });
+  };
 
-  const handleDonate = (causeId: string, amount: number, multiplier: number) => {
-    const coinsEarned = Math.floor(amount * multiplier)
-    setDonations([...donations, `${causeId}-${amount}`])
-    addCoins(coinsEarned)
-    addBadge({
-      id: `donor-${causeId}`,
-      name: "Generous Heart",
-      description: `Donated $${amount} to a worthy cause`,
-      icon: "💝",
-      earnedAt: new Date(),
-    })
-  }
+  const handleDonateClick = (eventId: string, amount: number) => {
+    handleRazorpayPayment(eventId, amount);
+  };
+
+  // Filter events based on selected filter
+  const filteredEvents = events.filter((event: DonationEvent) => {
+    const isCompleted = event.collectedAmount >= event.goalAmount;
+    switch (filter) {
+      case "active":
+        return !isCompleted;
+      case "completed":
+        return isCompleted;
+      default:
+        return true;
+    }
+  });
+
+  // Format currency in Indian Rupees
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
+      <main className="container mx-auto px-4 pb-24 max-w-8xl">
+        <div className="pt-8 pb-6">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
+              Support Meaningful Causes
+            </h1>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Your contribution can make a real difference. Choose a cause and make an impact today.
+            </p>
+          </div>
 
-      <main className="px-4 pb-20">
-        <div className="mt-6">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Make a Donation</h1>
-          <p className="text-muted-foreground mb-6">Support causes you care about and earn rewards</p>
+          {/* Filter Section */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white rounded-lg p-1 shadow-sm border">
+              <div className="flex space-x-1">
+                {[
+                  { value: "all", label: "All Campaigns" },
+                  { value: "active", label: "Active" },
+                  { value: "completed", label: "Completed" }
+                ].map((option) => (
+                  <Button
+                    key={option.value}
+                    variant={filter === option.value ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setFilter(option.value as any)}
+                    className={`px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      filter === option.value
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                        : "text-slate-600 hover:text-slate-800 hover:bg-slate-100"
+                    }`}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
 
-          <div className="space-y-6">
-            {donationCauses.map((cause) => {
-              const Icon = cause.icon
-              const progressPercentage = (cause.raised / cause.goal) * 100
-
-              return (
-                <Card key={cause.id} className="border-border">
-                  <CardHeader>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Icon className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <CardTitle className="text-lg">{cause.title}</CardTitle>
-                          <Badge variant="secondary" className="bg-accent text-accent-foreground">
-                            {cause.category}
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-2 w-full md:gap-8">
+              {filteredEvents.length > 0 ? (
+                filteredEvents.map((event: DonationEvent) => {
+                  const progressPercentage = Math.min((event.collectedAmount / event.goalAmount) * 100, 100);
+                  const isCompleted = event.collectedAmount >= event.goalAmount;
+                  
+                  return (
+                    <Card key={event._id} className="border-0 hover:shadow-xl transition-all duration-300 overflow-hidden bg-white">
+                      <div className={`absolute top-0 left-0 w-1 h-full ${
+                        isCompleted ? 'bg-green-500' : 'bg-gradient-to-b from-blue-500 to-purple-500'
+                      }`} />
+                      
+                      <CardHeader className="pb-4">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                          <div className="flex-1">
+                            <CardTitle className="text-xl font-semibold text-slate-800 mb-2 line-clamp-2">
+                              {event.title}
+                            </CardTitle>
+                            <CardDescription className="text-slate-600">
+                              {event.ngo?.name || "Community NGO"} • {event.ngo?.email || "Supporting local causes"}
+                            </CardDescription>
+                          </div>
+                          <Badge 
+                            variant={isCompleted ? "default" : "secondary"} 
+                            className={`px-3 py-1 text-sm ${
+                              isCompleted 
+                                ? 'bg-green-100 text-green-800 border-green-200' 
+                                : 'bg-blue-100 text-blue-800 border-blue-200'
+                            }`}
+                          >
+                            {isCompleted ? 'Goal Achieved' : event.status}
                           </Badge>
                         </div>
-                        <CardDescription className="text-primary font-medium mb-2">
-                          {cause.organization}
-                        </CardDescription>
-                        <p className="text-muted-foreground text-sm">{cause.description}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-medium">
-                          ${cause.raised.toLocaleString()} / ${cause.goal.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                        />
-                      </div>
-                    </div>
+                        
+                        <p className="text-slate-700 text-sm leading-relaxed mt-2">
+                          {event.description}
+                        </p>
+                      </CardHeader>
 
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
-                        {quickAmounts.map((amount) => (
-                          <Button
-                            key={amount}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDonate(cause.id, amount, cause.multiplier)}
-                            className="flex-1"
-                          >
-                            ${amount}
-                          </Button>
-                        ))}
-                      </div>
+                      <CardContent className="pt-0">
+                        {/* Progress Section */}
+                        <div className="mb-6">
+                          <div className="flex justify-between items-center text-sm mb-3">
+                            <span className="text-slate-600 font-medium">Funding Progress</span>
+                            <span className="font-semibold text-slate-800">
+                              {formatCurrency(event.collectedAmount)} / {formatCurrency(event.goalAmount)}
+                            </span>
+                          </div>
+                          <div className={`w-full h-3 rounded-full ${isCompleted ? 'bg-green-200' : 'bg-slate-200'} overflow-hidden`}>
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                isCompleted 
+                                  ? 'bg-green-500' 
+                                  : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                              }`}
+                              style={{ width: `${progressPercentage}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>{progressPercentage.toFixed(1)}% funded</span>
+                            <span>{Math.max(0, (100 - progressPercentage)).toFixed(1)}% to go</span>
+                          </div>
+                        </div>
 
-                      <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          placeholder="Custom amount"
-                          value={customAmount}
-                          onChange={(e) => setCustomAmount(e.target.value)}
-                          className="flex-1"
-                        />
-                        <Button
-                          onClick={() => {
-                            const amount = Number.parseInt(customAmount)
-                            if (amount > 0) {
-                              handleDonate(cause.id, amount, cause.multiplier)
-                              setCustomAmount("")
-                            }
-                          }}
-                          disabled={!customAmount || Number.parseInt(customAmount) <= 0}
-                          className="bg-primary hover:bg-primary/90"
-                        >
-                          Donate
-                        </Button>
-                      </div>
+                        {/* Donation Actions */}
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-700 mb-3">Quick Donate</h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              {quickAmounts.map((amount) => (
+                                <Button
+                                  key={amount}
+                                  variant="outline"
+                                  size="sm"
+                                  className={`h-12 font-medium transition-all duration-200 ${
+                                    isCompleted 
+                                      ? 'cursor-not-allowed opacity-50' 
+                                      : 'hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                                  }`}
+                                  onClick={() => handleDonateClick(event._id, amount)}
+                                  disabled={isCompleted}
+                                >
+                                  {formatCurrency(amount)}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
 
-                      <div className="text-center text-sm text-muted-foreground">
-                        <span className="text-accent font-semibold">🪙 {cause.multiplier}x coins</span> per dollar
-                        donated
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-700 mb-3">Custom Amount</h4>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <div className="relative flex-1">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 font-medium">₹</span>
+                                <Input
+                                  type="number"
+                                  placeholder="Enter custom amount"
+                                  value={customAmounts[event._id] || ""}
+                                  onChange={(e) =>
+                                    setCustomAmounts({ ...customAmounts, [event._id]: e.target.value })
+                                  }
+                                  className="pl-8 h-12 bg-white border-slate-300 focus:border-blue-400"
+                                  disabled={isCompleted}
+                                />
+                              </div>
+                              <Button
+                                className="h-12 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-md transition-all duration-200"
+                                disabled={!customAmounts[event._id] || Number(customAmounts[event._id]) <= 0 || isCompleted}
+                                onClick={() => handleCustomDonate(event._id)}
+                              >
+                                Donate Now
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {isCompleted && (
+                          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-green-700 text-sm text-center font-medium">
+                              🎉 Thank you! This campaign has reached its funding goal.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              ) : (
+                // No Events Available Message
+                <div className="col-span-2 flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <svg 
+                      className="w-12 h-12 text-slate-400" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={1.5} 
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" 
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-700 mb-2">
+                    {events.length === 0 ? "No Campaigns Available" : "No Campaigns Match Your Filter"}
+                  </h3>
+                  <p className="text-slate-500 max-w-md">
+                    {events.length === 0 
+                      ? "There are currently no donation campaigns available. Please check back later for new opportunities to make a difference."
+                      : "No campaigns match your current filter selection. Try changing the filter to see more options."
+                    }
+                  </p>
+                  {events.length > 0 && filter !== "all" && (
+                    <Button
+                      onClick={() => setFilter("all")}
+                      className="mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    >
+                      View All Campaigns
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
-
-      <Navigation />
     </div>
-  )
+  );
 }

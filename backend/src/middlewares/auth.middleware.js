@@ -10,7 +10,8 @@ export const authentication = async (req, res, next) => {
             ? authHeader.split(" ")[1]
             : null;
 
-        const jwtToken = req.cookies.jwtToken || tokenFromHeader;
+        // const jwtToken = req.cookies.jwtToken || tokenFromHeader;
+        const jwtToken = req.cookies?.jwtToken || tokenFromHeader;
 
         if (!jwtToken) {
             throw new ApiError(401, "Authentication token is required");

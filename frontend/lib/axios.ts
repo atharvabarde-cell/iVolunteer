@@ -1,9 +1,10 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
-    withCredentials: true
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  withCredentials: true,
 });
+
 
 // Flag to prevent multiple refresh attempts
 let isRefreshing = false;
@@ -22,22 +23,25 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 // Add a request interceptor to add the auth token
+// Add a request interceptor to include auth token
+
 api.interceptors.request.use(
-    (config) => {
-        // Get token from localStorage
-        const token = localStorage.getItem('auth-token');
-        if (token) {
-            config.headers = {
-                ...config.headers,
-                Authorization: `Bearer ${token}`
-            };
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+  (config) => {
+    const token = localStorage.getItem('auth-token');
+
+    if (token) {
+      // Ensure headers exist and set Authorization
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
 );
+
 
 // Add a response interceptor to handle token expiration
 api.interceptors.response.use(
@@ -105,3 +109,5 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+
