@@ -3,11 +3,10 @@ import React, { useState } from "react";
 import { Plus, Calendar } from "lucide-react";
 import Link from "next/link";
 
-const Eventbutton = () => {
+const Donationeventbutton = () => {
   const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <div className="md:w-[45%] w-[90%]">
+    <div className="md:w-[45%] w-[90%] mt-3">
       <div className="h-full bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300">
         <div className="flex flex-col h-full">
           {/* Header Section */}
@@ -17,11 +16,11 @@ const Eventbutton = () => {
                 <Calendar className="w-6 h-6 text-blue-600" />
               </div>
               <h3 className="text-2xl font-semibold text-gray-800">
-                Manage Your Volunteer Events
+                Manage Your Donation Events
               </h3>
             </div>
             <p className="text-gray-600 text-lg font-medium leading-relaxed">
-              Create and organize volunteer events to maximize your impact and engage your community
+              Raise funds and donations to support your cause and make a greater impact
             </p>
           </div>
 
@@ -33,7 +32,7 @@ const Eventbutton = () => {
             </div>
             
             <Link 
-              href="/add-event" 
+              href="/donationevent-form" 
               className="w-full sm:w-auto"
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
@@ -59,7 +58,7 @@ const Eventbutton = () => {
                 <div className={`absolute inset-0 bg-white/20 transform ${isHovered ? 'scale-100' : 'scale-0'} transition-transform duration-300`} />
                 
                 <Plus size={20} className="relative z-10" />
-                <span className="relative z-10">Add Volunteer Event</span>
+                <span className="relative z-10">Add Donation Event</span>
                 <div className={`relative z-10 transform transition-transform duration-300 ${isHovered ? 'translate-x-1' : 'translate-x-0'}`}>
                   →
                 </div>
@@ -95,4 +94,4 @@ const Eventbutton = () => {
   );
 };
 
-export default Eventbutton;
+export default Donationeventbutton;
