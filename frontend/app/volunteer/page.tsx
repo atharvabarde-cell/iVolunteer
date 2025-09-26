@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useNGO } from "@/contexts/ngo-context";
 import {
   Calendar,
@@ -12,6 +13,7 @@ import {
 import { Header } from "@/components/header";
 
 const AvailableEventsPage: React.FC = () => {
+  const router = useRouter();
   const { events, fetchAvailableEvents, loading, error, participateInEvent } =
     useNGO();
   const [participating, setParticipating] = useState<{
@@ -39,6 +41,12 @@ const AvailableEventsPage: React.FC = () => {
       console.error("Participation failed:", err);
     } finally {
       setParticipating((prev) => ({ ...prev, [eventId]: false }));
+    }
+  };
+
+  const handleCardClick = (eventId: string) => {
+    if (eventId) {
+      router.push(`/volunteer/${eventId}`);
     }
   };
 
@@ -151,7 +159,8 @@ const AvailableEventsPage: React.FC = () => {
               return (
                 <div
                   key={event._id}
-                  className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 border overflow-hidden ${
+                  onClick={() => event._id && handleCardClick(event._id)}
+                  className={`bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border overflow-hidden cursor-pointer transform hover:scale-[1.02] ${
                     eventFull ? "border-red-200" : "border-gray-100"
                   } ${userParticipating ? "ring-2 ring-green-200" : ""}`}
                 >
@@ -166,13 +175,16 @@ const AvailableEventsPage: React.FC = () => {
                   )}
 
                   {/* Event Header */}
-                  <div className="p-6 border-b border-gray-100">
+                  <div className="p-6 border-b border-gray-100 relative">
                     <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
                       {event.title}
                     </h2>
                     <p className="text-gray-600 text-sm line-clamp-3">
                       {event.description}
                     </p>
+                    <div className="absolute top-4 right-4 text-xs text-blue-600 font-medium">
+                      Click to view details
+                    </div>
                   </div>
 
                   {/* Event Details */}
@@ -271,9 +283,10 @@ const AvailableEventsPage: React.FC = () => {
                       </button>
                     ) : (
                       <button
-                        onClick={() =>
-                          event._id && handleParticipate(event._id)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          event._id && handleParticipate(event._id);
+                        }}
                         disabled={!event._id || participating[event._id]}
                         className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
                       >
