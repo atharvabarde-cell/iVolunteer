@@ -126,6 +126,8 @@ export function PostDisplay({ post }: PostDisplayProps) {
         ? post.reactions.find(reaction => reaction.user._id === user._id)?.type 
         : null;
 
+    // const userReaction = null;
+
     return (
         <article className="bg-white rounded-lg shadow space-y-4 p-4">
             <header className="flex items-center justify-between">

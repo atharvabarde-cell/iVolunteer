@@ -14,6 +14,7 @@ import {
   HeartHandshake,
   Users,
   Shield,
+  CheckCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -75,40 +76,41 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* Header with tabs */}
-        <div className="flex bg-white border-b border-gray-100">
-          <button
-            onClick={() => setTab("login")}
-            className={`flex-1 py-4 text-center font-medium transition-all duration-300 ${
-              tab === "login"
-                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Login
-          </button>
-          <button
-            onClick={() => setTab("signup")}
-            className={`flex-1 py-4 text-center font-medium transition-all duration-300 ${
-              tab === "signup"
-                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Sign Up
-          </button>
-        </div>
+    <div className="flex flex-col min-h-screen items-center justify-center p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 font-['Manrope'] text-gray-800 dark:text-gray-200">
+      <div className="w-full max-w-md">
+        {/* Main Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 space-y-6 border border-gray-200 dark:border-gray-700">
+          {/* Tabs */}
+          <div className="flex bg-gray-50 dark:bg-gray-700 rounded-lg p-1 mb-6">
+            <button
+              onClick={() => setTab("login")}
+              className={`flex-1 py-2 px-4 text-center font-medium rounded-md transition-all duration-300 ${
+                tab === "login"
+                  ? "bg-white dark:bg-gray-800 text-blue-600 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              }`}
+            >
+              Login
+            </button>
+            <button
+              onClick={() => setTab("signup")}
+              className={`flex-1 py-2 px-4 text-center font-medium rounded-md transition-all duration-300 ${
+                tab === "signup"
+                  ? "bg-white dark:bg-gray-800 text-blue-600 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
 
-        <div className="p-8">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              {tab === "login" ? "Welcome Back" : "Create Account"}
-            </h1>
+          {/* Form Header */}
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              {tab === "login"
+                ? "Login to Your Account"
+                : "Create a New Account"}
+            </h2>
             <p className="text-gray-500 mt-2">
               {tab === "login"
                 ? "Sign in to continue your volunteering journey"
@@ -116,32 +118,126 @@ export default function AuthPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 font-['Manrope'] tracking-wide">
+                I am a: <span className="text-red-500">*</span>
+              </label>
+
+              {tab === "login" ? (
+                // roles for Login
+                <div className="grid grid-cols-2 gap-3">
+                  {roleOptions.map((opt) => {
+                    const Icon = opt.icon;
+                    const isSelected = selectedRole === opt.value;
+
+                    return (
+                      <label key={opt.value} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          value={opt.value}
+                          {...register("role", {
+                            required: "Role is required",
+                          })}
+                          className="hidden"
+                        />
+                        <div
+                          className={`flex items-center justify-center py-3 px-4 rounded-lg font-semibold transition-colors duration-200 border ${
+                            isSelected
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 mr-2" />
+                          {opt.label}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                // roles for Signup
+                <div className="grid grid-cols-2 gap-3">
+                  {roleOptions.map((opt) => {
+                    const Icon = opt.icon;
+                    const isSelected = selectedRole === opt.value;
+
+                    return (
+                      <label key={opt.value} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          value={opt.value}
+                          {...register("role", {
+                            required: "Role is required",
+                          })}
+                          className="hidden"
+                        />
+                        <div
+                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg font-semibold transition-all border ${
+                            isSelected
+                              ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-500"
+                              : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          <Icon className="w-6 h-6" />
+                          <span className="text-sm">{opt.label}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              {errors.role && (
+                <p className="text-red-500 text-sm mt-2">
+                  {errors.role.message}
+                </p>
+              )}
+            </div>
+
+            {/* Full Name Field for signup only */}
             {tab === "signup" && (
               <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Full Name"
+                    placeholder="Enter your full name"
                     {...register("name", { required: "Name is required" })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className={`w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.name
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
                   />
                 </div>
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-500">
+                  <p className="text-red-500 text-sm mt-1">
                     {errors.name.message}
                   </p>
                 )}
               </div>
             )}
 
+            {/* Email Field */}
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email <span className="text-red-500">*</span>
+              </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 transition-colors duration-200 peer-focus:text-blue-500" />
                 <input
                   type="email"
-                  placeholder="Email address"
+                  placeholder="you@example.com"
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
@@ -149,22 +245,36 @@ export default function AuthPage() {
                       message: "Please enter a valid email",
                     },
                   })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className={`w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.email
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
                 />
               </div>
+
               {errors.email && (
-                <p className="mt-1 text-sm text-red-500">
+                <p className="text-red-500 text-sm mt-1">
                   {errors.email.message}
                 </p>
               )}
             </div>
 
+            {/* Password Field */}
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Password <span className="text-red-500">*</span>
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Password"
+                  placeholder="••••••••"
                   {...register("password", {
                     required: "Password is required",
                     minLength: {
@@ -172,8 +282,18 @@ export default function AuthPage() {
                       message: "Password must be at least 6 characters",
                     },
                   })}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.password
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -187,85 +307,84 @@ export default function AuthPage() {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-500">
+                <p className="text-red-500 text-sm mt-1">
                   {errors.password.message}
                 </p>
               )}
             </div>
 
+            {/* Confirm Password for signup  */}
             {tab === "signup" && (
               <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm Password"
+                    placeholder="••••••••"
                     {...register("confirmPassword", {
                       required: "Confirm password is required",
                       validate: (val) =>
                         val === watch("password") || "Passwords do not match",
                     })}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.password
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
+
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+                    {!errors.confirmPassword && watch("confirmPassword") && (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
                     )}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-500">
+                  <p className="text-red-500 text-sm mt-1">
                     {errors.confirmPassword.message}
                   </p>
                 )}
               </div>
             )}
 
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">
-                Select Role
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {roleOptions.map((opt) => {
-                  const Icon = opt.icon;
-                  return (
-                    <label
-                      key={opt.value}
-                      className={`p-3 border rounded-lg cursor-pointer transition-all flex flex-col items-center ${
-                        selectedRole === opt.value
-                          ? "border-blue-500 bg-blue-50 text-blue-700"
-                          : "border-gray-200 hover:border-gray-300 text-gray-600"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        value={opt.value}
-                        {...register("role", { required: "Role is required" })}
-                        className="hidden"
-                      />
-                      <Icon className="h-5 w-5 mb-1" />
-                      <span className="text-xs font-medium">{opt.label}</span>
-                    </label>
-                  );
-                })}
+            {/* Forgot Password (Login only) */}
+            {tab === "login" && (
+              <div className="flex items-center justify-end">
+                <a
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                  href="#"
+                >
+                  Forgot password?
+                </a>
               </div>
-              {errors.role && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.role.message}
-                </p>
-              )}
-            </div>
+            )}
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 dark:focus:ring-offset-gray-800"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center">
@@ -299,12 +418,17 @@ export default function AuthPage() {
             </button>
           </form>
 
-          {tab === "login" && (
-            <div className="mt-6 text-center">
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-800">
-                Forgot your password?
-              </a>
-            </div>
+          {/* Footer Link */}
+          {tab === "signup" && (
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+              Already have an account?{" "}
+              <button
+                onClick={() => setTab("login")}
+                className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                Log in
+              </button>
+            </p>
           )}
         </div>
       </div>

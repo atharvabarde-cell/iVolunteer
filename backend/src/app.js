@@ -5,13 +5,25 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 
+
 import { errorHandler, notFoundHandler } from "./middlewares/globalErrorHandler.js"
 import authRouter from "./routes/auth.routes.js"
 import postRouter from "./routes/post.routes.js"
 import rewardsRouter from "./routes/rewards.routes.js"
+
+// import {
+//   errorHandler,
+//   notFoundHandler,
+// } from "./middlewares/globalErrorHandler.js";
+// import authRouter from "./routes/auth.routes.js";
+// import postRouter from "./routes/post.routes.js";
+
 // import communityRouter from "./routes/community.routes.js"
 import communityRouter from "./routes/community.routes.js";
 import eventRouter from "./routes/event.routes.js";
+import donationRouter from "./routes/donation.routes.js";
+import donationEventRouter from "./routes/donationEvent.routes.js";
+import paymentRouter from "./routes/payment.routes.js";
 
 const app = express();
 
@@ -37,8 +49,10 @@ function limiter(windowMs, max) {
   });
 }
 
+
+
 // global limiter, applies to all routes
-const globalRateLimiting = limiter(15 * 60 * 1000, 1000); // 15 minutes, 1000 requests
+const globalRateLimiting = limiter(15 * 60 * 1000, 5000); // 15 minutes, 1000 requests
 app.use(globalRateLimiting);
 
 const authLimiter = limiter(15 * 60 * 1000, 100);
@@ -52,8 +66,15 @@ app.use("/api/v1/rewards", globalRateLimiting, rewardsRouter);
 app.use("/api/v1/communities", globalRateLimiting, communityRouter);
 app.use("/api/v1/event", eventRouter);
 
+//DonationEvent
+app.use("/api/v1/donation-event", globalRateLimiting, donationEventRouter);
+app.use("/api/v1/donation", globalRateLimiting, donationRouter);
+
+// Payment routes
+app.use("/api/v1/payment", globalRateLimiting, paymentRouter);
 
 app.use(errorHandler);
 app.use(notFoundHandler);
+
 
 export { app };

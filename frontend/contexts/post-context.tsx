@@ -89,7 +89,7 @@ export function PostProvider({ children }: PostProviderProps) {
                 currentPage: number;
                 totalPages: number;
                 totalPosts: number;
-            }>(`/api/v1/posts?page=${page}`);
+            }>(`/v1/posts?page=${page}`);
             setPosts(response.data.posts);
             return response.data;
         } catch (err) {
@@ -104,7 +104,7 @@ export function PostProvider({ children }: PostProviderProps) {
     const createPost = async (formData: FormData) => {
         try {
             setLoading(true);
-            const response = await api.post<Post>('/api/v1/posts', formData);
+            const response = await api.post<Post>('/v1/posts', formData);
             setPosts(prevPosts => [response.data, ...prevPosts]);
             return response.data;
         } catch (err) {
@@ -119,7 +119,7 @@ export function PostProvider({ children }: PostProviderProps) {
     const updatePost = async (postId: string, formData: FormData) => {
         try {
             setLoading(true);
-            const response = await api.put<Post>(`/api/v1/posts/${postId}`, formData);
+            const response = await api.put<Post>(`/v1/posts/${postId}`, formData);
             setPosts(prevPosts =>
                 prevPosts.map(post =>
                     post._id === postId ? response.data : post
@@ -137,7 +137,7 @@ export function PostProvider({ children }: PostProviderProps) {
 
     const addComment = async (postId: string, content: string) => {
         try {
-            const response = await api.post<Comment>(`/api/v1/posts/${postId}/comments`, { content });
+            const response = await api.post<Comment>(`/v1/posts/${postId}/comments`, { content });
             setPosts(prevPosts =>
                 prevPosts.map(post =>
                     post._id === postId
@@ -155,7 +155,7 @@ export function PostProvider({ children }: PostProviderProps) {
 
     const deleteComment = async (postId: string, commentId: string) => {
         try {
-            await api.delete(`/api/v1/posts/${postId}/comments/${commentId}`);
+            await api.delete(`/v1/posts/${postId}/comments/${commentId}`);
             setPosts(prevPosts =>
                 prevPosts.map(post =>
                     post._id === postId
@@ -172,7 +172,7 @@ export function PostProvider({ children }: PostProviderProps) {
 
     const toggleReaction = async (postId: string, type: Reaction['type']) => {
         try {
-            const response = await api.post<Reaction[]>(`/api/v1/posts/${postId}/reactions`, { type });
+            const response = await api.post<Reaction[]>(`/v1/posts/${postId}/reactions`, { type });
             setPosts(prevPosts =>
                 prevPosts.map(post =>
                     post._id === postId
@@ -190,7 +190,7 @@ export function PostProvider({ children }: PostProviderProps) {
 
     const deletePost = async (postId: string) => {
         try {
-            await api.delete(`/api/v1/posts/${postId}`);
+            await api.delete(`/v1/posts/${postId}`);
             setPosts(prevPosts => prevPosts.filter(post => post._id !== postId));
         } catch (err) {
             const message = handleError(err);
