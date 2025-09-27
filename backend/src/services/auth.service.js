@@ -25,14 +25,34 @@ const register = async (data) => {
   session.startTransaction();
 
   try {
-    // Create the user with initial 50 coins
-    const user = new User({
+    // Create the user with initial 50 coins and additional fields for NGOs
+    const userData = {
       email,
       name: data.name,
       password: hashedPassword,
       role: data.role,
       coins: 50, // Give 50 coins for registration
-    });
+    };
+
+    // Add NGO-specific fields if role is 'ngo'
+    if (data.role === 'ngo') {
+      userData.organizationType = data.organizationType;
+      userData.websiteUrl = data.websiteUrl;
+      userData.yearEstablished = data.yearEstablished;
+      userData.contactNumber = data.contactNumber;
+      userData.address = {
+        street: data.address?.street,
+        city: data.address?.city,
+        state: data.address?.state,
+        zip: data.address?.zip,
+        country: data.address?.country || 'India'
+      };
+      userData.ngoDescription = data.ngoDescription;
+      userData.focusAreas = data.focusAreas || [];
+      userData.organizationSize = data.organizationSize;
+    }
+
+    const user = new User(userData);
 
     await user.save({ session });
 

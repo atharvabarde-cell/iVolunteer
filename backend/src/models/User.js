@@ -32,6 +32,74 @@ const userSchema = new mongoose.Schema({
         enum: ["user", "ngo", "admin","corporate"],
         default: "user"
     },
+    // NGO-specific fields
+    organizationType: {
+        type: String,
+        enum: ["non-profit", "charity", "foundation", "trust", "society", "other"],
+        required: function() { return this.role === 'ngo'; }
+    },
+    websiteUrl: {
+        type: String,
+        trim: true,
+        validate: {
+            validator: function(v) {
+                return !v || v === '' || /^https?:\/\/.+/.test(v);
+            },
+            message: 'Please provide a valid URL or leave empty'
+        }
+    },
+    yearEstablished: {
+        type: Number,
+        min: [1800, "Year must be after 1800"],
+        max: [new Date().getFullYear(), "Year cannot be in the future"]
+    },
+    contactNumber: {
+        type: String,
+        required: function() { return this.role === 'ngo'; },
+        validate: {
+            validator: function(v) {
+                return !v || /^[\+]?[1-9][\d]{0,15}$/.test(v);
+            },
+            message: 'Please provide a valid contact number'
+        }
+    },
+    address: {
+        street: {
+            type: String,
+            required: function() { return this.role === 'ngo'; }
+        },
+        city: {
+            type: String,
+            required: function() { return this.role === 'ngo'; }
+        },
+        state: {
+            type: String,
+            required: function() { return this.role === 'ngo'; }
+        },
+        zip: {
+            type: String,
+            required: function() { return this.role === 'ngo'; }
+        },
+        country: {
+            type: String,
+            required: function() { return this.role === 'ngo'; },
+            default: "India"
+        }
+    },
+    ngoDescription: {
+        type: String,
+        required: function() { return this.role === 'ngo'; },
+        maxlength: [1000, "Description cannot exceed 1000 characters"]
+    },
+    focusAreas: [{
+        type: String,
+        enum: ["environment", "education", "health", "poverty", "children", "elderly", "animal-welfare", "disaster-relief", "community-development", "women-empowerment", "skill-development", "other"]
+    }],
+    organizationSize: {
+        type: String,
+        enum: ["1-10", "11-50", "51-100", "101-500", "500+"],
+        required: function() { return this.role === 'ngo'; }
+    },
     points: {
         type: Number,
         default: 0,
