@@ -91,7 +91,10 @@ const eventSchema = new mongoose.Schema(
         message: "{VALUE} is not a supported category",
       },
     },
-    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    participants: { 
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], 
+      default: [] 
+    },
 
     maxParticipants: {
       type: Number,

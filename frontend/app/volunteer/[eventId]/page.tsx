@@ -1,6 +1,8 @@
-"use client";
+'use client'
+
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 import { useNGO } from "@/contexts/ngo-context";
 import {
   Calendar,
@@ -20,11 +22,13 @@ import { Header } from "@/components/header";
 const EventDetailsPage: React.FC = () => {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const eventId = params.eventId as string;
   
-  const { events, fetchAvailableEvents, loading, error, participateInEvent } = useNGO();
+  const { events, fetchAvailableEvents, loading, error, participateInEvent, leaveEvent } = useNGO();
   const [event, setEvent] = useState<any>(null);
   const [participating, setParticipating] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [participated, setParticipated] = useState(false);
 
   useEffect(() => {
@@ -40,10 +44,12 @@ const EventDetailsPage: React.FC = () => {
       
       if (foundEvent) {
         // Check if user is already participating
-        const currentUserId = typeof window !== "undefined" ? localStorage.getItem("user-id") || "" : "";
+        const currentUserId = user?._id || "";
         setParticipated(
           Array.isArray(foundEvent.participants) && 
-          foundEvent.participants.includes(currentUserId)
+          foundEvent.participants.some((participant: any) => 
+            participant._id === currentUserId || participant === currentUserId
+          )
         );
       }
     }
@@ -64,6 +70,24 @@ const EventDetailsPage: React.FC = () => {
       console.error("Participation failed:", err);
     } finally {
       setParticipating(false);
+    }
+  };
+
+  const handleLeaveEvent = async () => {
+    if (!event?._id) return;
+    
+    setLeaving(true);
+    try {
+      const success = await leaveEvent(event._id);
+      if (success) {
+        setParticipated(false);
+        // Refresh events to get updated data
+        setTimeout(() => fetchAvailableEvents(), 500);
+      }
+    } catch (err) {
+      console.error("Leave event failed:", err);
+    } finally {
+      setLeaving(false);
     }
   };
 
@@ -325,13 +349,29 @@ const EventDetailsPage: React.FC = () => {
 
                 {/* Action Button */}
                 {participated ? (
-                  <button
-                    disabled
-                    className="w-full bg-green-100 text-green-700 py-3 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Already Participating
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      disabled
+                      className="w-full bg-green-100 text-green-700 py-3 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Already Participating
+                    </button>
+                    <button
+                      onClick={handleLeaveEvent}
+                      disabled={leaving}
+                      className="w-full bg-red-100 text-red-700 py-2 px-4 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm disabled:bg-red-200 disabled:cursor-not-allowed flex items-center justify-center"
+                    >
+                      {leaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-700 mr-2"></div>
+                          Leaving...
+                        </>
+                      ) : (
+                        'Leave Event'
+                      )}
+                    </button>
+                  </div>
                 ) : eventFull ? (
                   <button
                     disabled
