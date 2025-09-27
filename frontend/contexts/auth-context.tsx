@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email: string;
       name: string;
       role: UserRole;
+      coins?: number; // Add coins field for registration response
     };
     tokens: {
       accessToken: string;
@@ -90,11 +91,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   ): Promise<boolean> => {
     setIsLoading(true);
     try {
+      console.log("Attempting signup for:", { name, email, role });
       const { data } = await axios.post<AuthResponse>(
         "http://localhost:5000/api/v1/auth/register",
         { name, email, password, role },
         { withCredentials: true } // if your backend uses cookies for JWT
       );
+
+      console.log("Signup response received:", data);
 
       // Map the response user to our User interface
       const mappedUser: User = {
@@ -104,12 +108,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         name: data.user.name,
         role: data.user.role,
         points: 0,
-        coins: 0,
+        coins: data.user.coins || 50, // Use coins from response (should be 50 for new users)
         volunteeredHours: 0,
         totalRewards: 0,
         completedEvents: [],
         createdAt: new Date().toISOString()
       };
+
+      console.log("Mapped user object with coins:", mappedUser.coins);
 
       setUser(mappedUser);
       localStorage.setItem("auth-user", JSON.stringify(mappedUser));
@@ -117,6 +123,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem("auth-token", data.tokens.accessToken);
         localStorage.setItem("refresh-token", data.tokens.refreshToken);
       }
+
+      // Show welcome bonus notification
+      console.log("Showing welcome toast notification");
+      
+      // Use setTimeout to ensure the toast appears after state updates
+      setTimeout(() => {
+        toast({
+          title: "🎉 Welcome to iVolunteer!",
+          description: "You've been awarded 50 coins as a welcome bonus!",
+          variant: "default",
+        });
+      }, 100);
+
       setIsLoading(false);
       return true;
     } catch (err: any) {
@@ -150,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         name: data.user.name,
         role: data.user.role,
         points: 0,
-        coins: 0,
+        coins: data.user.coins || 0, // Use coins from response
         volunteeredHours: 0,
         totalRewards: 0,
         completedEvents: [],
@@ -159,12 +178,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       setUser(mappedUser);
       localStorage.setItem("auth-user", JSON.stringify(mappedUser));
-      localStorage.setItem("auth-token", data.tokens.accessToken);
-      localStorage.setItem("refresh-token", data.tokens.refreshToken);
-
-      setUser(data.user);
-      localStorage.setItem("auth-user", JSON.stringify(data.user));
-      localStorage.setItem("auth-token", data.tokens.accessToken);
+      if (data.tokens) {
+        localStorage.setItem("auth-token", data.tokens.accessToken);
+        localStorage.setItem("refresh-token", data.tokens.refreshToken);
+      }
 
       setIsLoading(false);
       return true;

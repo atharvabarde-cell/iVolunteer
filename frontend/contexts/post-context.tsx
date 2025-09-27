@@ -172,7 +172,7 @@ export function PostProvider({ children }: PostProviderProps) {
 
     const toggleReaction = async (postId: string, type: Reaction['type']) => {
         try {
-            const response = await api.post<Reaction[]>(`/api/v1/posts/${postId}/reactions`, { type });
+            const response = await api.post<Reaction[]>(`/v1/posts/${postId}/reactions`, { type });
             setPosts(prevPosts =>
                 prevPosts.map(post =>
                     post._id === postId

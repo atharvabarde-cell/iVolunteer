@@ -59,6 +59,7 @@ export default function AuthPage() {
       );
       if (success) {
         toast.success("Account created successfully!");
+        toast.success("Welcome to iVolunteer! You've been awarded 50 coins as a welcome bonus!");
         router.push("/");
       } else {
         toast.error("Signup failed");
