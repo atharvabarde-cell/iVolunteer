@@ -52,6 +52,25 @@ const register = async (data) => {
       userData.organizationSize = data.organizationSize;
     }
 
+    // Add Corporate-specific fields if role is 'corporate'
+    if (data.role === 'corporate') {
+      userData.companyType = data.companyType;
+      userData.industrySector = data.industrySector;
+      userData.companySize = data.companySize;
+      userData.websiteUrl = data.websiteUrl;
+      userData.yearEstablished = data.yearEstablished;
+      userData.contactNumber = data.contactNumber;
+      userData.address = {
+        street: data.address?.street,
+        city: data.address?.city,
+        state: data.address?.state,
+        zip: data.address?.zip,
+        country: data.address?.country || 'India'
+      };
+      userData.companyDescription = data.companyDescription;
+      userData.csrFocusAreas = data.csrFocusAreas || [];
+    }
+
     const user = new User(userData);
 
     await user.save({ session });

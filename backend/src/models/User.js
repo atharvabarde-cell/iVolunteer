@@ -55,7 +55,7 @@ const userSchema = new mongoose.Schema({
     },
     contactNumber: {
         type: String,
-        required: function() { return this.role === 'ngo'; },
+        required: function() { return this.role === 'ngo' || this.role === 'corporate'; },
         validate: {
             validator: function(v) {
                 return !v || /^[\+]?[1-9][\d]{0,15}$/.test(v);
@@ -66,23 +66,23 @@ const userSchema = new mongoose.Schema({
     address: {
         street: {
             type: String,
-            required: function() { return this.role === 'ngo'; }
+            required: function() { return this.role === 'ngo' || this.role === 'corporate'; }
         },
         city: {
             type: String,
-            required: function() { return this.role === 'ngo'; }
+            required: function() { return this.role === 'ngo' || this.role === 'corporate'; }
         },
         state: {
             type: String,
-            required: function() { return this.role === 'ngo'; }
+            required: function() { return this.role === 'ngo' || this.role === 'corporate'; }
         },
         zip: {
             type: String,
-            required: function() { return this.role === 'ngo'; }
+            required: function() { return this.role === 'ngo' || this.role === 'corporate'; }
         },
         country: {
             type: String,
-            required: function() { return this.role === 'ngo'; },
+            required: function() { return this.role === 'ngo' || this.role === 'corporate'; },
             default: "India"
         }
     },
@@ -100,6 +100,31 @@ const userSchema = new mongoose.Schema({
         enum: ["1-10", "11-50", "51-100", "101-500", "500+"],
         required: function() { return this.role === 'ngo'; }
     },
+    // Corporate-specific fields
+    companyType: {
+        type: String,
+        enum: ["private-limited", "public-limited", "llp", "partnership", "sole-proprietorship", "mnc", "startup", "other"],
+        required: function() { return this.role === 'corporate'; }
+    },
+    industrySector: {
+        type: String,
+        enum: ["it-software", "healthcare", "finance", "manufacturing", "retail", "education", "consulting", "real-estate", "other"],
+        required: function() { return this.role === 'corporate'; }
+    },
+    companySize: {
+        type: String,
+        enum: ["1-10", "11-50", "51-200", "201-1000", "1000+"],
+        required: function() { return this.role === 'corporate'; }
+    },
+    companyDescription: {
+        type: String,
+        required: function() { return this.role === 'corporate'; },
+        maxlength: [1000, "Description cannot exceed 1000 characters"]
+    },
+    csrFocusAreas: [{
+        type: String,
+        enum: ["employee-volunteering", "community-development", "education-skill-development", "environment-sustainability", "healthcare", "disaster-relief", "women-empowerment", "rural-development", "other"]
+    }],
     points: {
         type: Number,
         default: 0,

@@ -47,7 +47,7 @@ const registerSchema = Joi.object({
     }),
 
     contactNumber: Joi.when('role', {
-        is: 'ngo',
+        is: Joi.valid('ngo', 'corporate'),
         then: Joi.string().custom((value, helpers) => {
             // Remove all non-digit characters for validation
             const digitsOnly = value.replace(/\D/g, '');
@@ -82,24 +82,24 @@ const registerSchema = Joi.object({
                 message: 'Please enter a valid mobile number (10 digits) or landline number' 
             });
         }).required().messages({
-            "any.required": "Contact number is required for NGOs"
+            "any.required": "Contact number is required"
         }),
         otherwise: Joi.string().optional()
     }),
 
     address: Joi.when('role', {
-        is: 'ngo',
+        is: Joi.valid('ngo', 'corporate'),
         then: Joi.object({
             street: Joi.string().trim().required().messages({
-                "any.required": "Street address is required for NGOs",
+                "any.required": "Street address is required",
                 "string.empty": "Street address cannot be empty"
             }),
             city: Joi.string().trim().required().messages({
-                "any.required": "City is required for NGOs",
+                "any.required": "City is required",
                 "string.empty": "City cannot be empty"
             }),
             state: Joi.string().trim().required().messages({
-                "any.required": "State is required for NGOs",
+                "any.required": "State is required",
                 "string.empty": "State cannot be empty"
             }),
             zip: Joi.string().trim().required().custom((value, helpers) => {
@@ -114,14 +114,14 @@ const registerSchema = Joi.object({
                 
                 return value;
             }).messages({
-                "any.required": "ZIP code is required for NGOs",
+                "any.required": "ZIP code is required",
                 "string.empty": "ZIP code cannot be empty"
             }),
             country: Joi.string().trim().default("India").messages({
                 "string.empty": "Country cannot be empty"
             })
         }).required().messages({
-            "any.required": "Address is required for NGOs"
+            "any.required": "Address is required"
         }),
         otherwise: Joi.object().optional()
     }),
@@ -172,6 +172,73 @@ const registerSchema = Joi.object({
             "any.only": "Organization size must be one of: 1-10, 11-50, 51-100, 101-500, 500+"
         }),
         otherwise: Joi.string().optional()
+    }),
+
+    // Corporate-specific fields
+    companyType: Joi.when('role', {
+        is: 'corporate',
+        then: Joi.string().valid("private-limited", "public-limited", "llp", "partnership", "sole-proprietorship", "mnc", "startup", "other").required().messages({
+            "any.required": "Company type is required for corporate accounts",
+            "any.only": "Company type must be one of: private-limited, public-limited, llp, partnership, sole-proprietorship, mnc, startup, other"
+        }),
+        otherwise: Joi.string().optional()
+    }),
+
+    industrySector: Joi.when('role', {
+        is: 'corporate',
+        then: Joi.string().valid("it-software", "healthcare", "finance", "manufacturing", "retail", "education", "consulting", "real-estate", "other").required().messages({
+            "any.required": "Industry sector is required for corporate accounts",
+            "any.only": "Industry sector must be one of: it-software, healthcare, finance, manufacturing, retail, education, consulting, real-estate, other"
+        }),
+        otherwise: Joi.string().optional()
+    }),
+
+    companySize: Joi.when('role', {
+        is: 'corporate',
+        then: Joi.string().valid("1-10", "11-50", "51-200", "201-1000", "1000+").required().messages({
+            "any.required": "Company size is required for corporate accounts",
+            "any.only": "Company size must be one of: 1-10, 11-50, 51-200, 201-1000, 1000+"
+        }),
+        otherwise: Joi.string().optional()
+    }),
+
+    companyDescription: Joi.when('role', {
+        is: 'corporate',
+        then: Joi.string().trim().min(10).max(1000).required().custom((value, helpers) => {
+            // Count words by splitting on whitespace and filtering empty strings
+            const words = value.trim().split(/\s+/).filter(word => word.length > 0);
+            
+            if (words.length < 10) {
+                return helpers.error('string.custom', { 
+                    message: `Company description must contain at least 10 words (currently ${words.length} words)` 
+                });
+            }
+            
+            return value;
+        }).messages({
+            "any.required": "Company description is required for corporate accounts",
+            "string.min": "Description must be at least 10 characters long",
+            "string.max": "Description cannot exceed 1000 characters",
+            "string.empty": "Description cannot be empty",
+            "string.custom": "{{#message}}"
+        }),
+        otherwise: Joi.string().optional()
+    }),
+
+    csrFocusAreas: Joi.when('role', {
+        is: 'corporate',
+        then: Joi.array().items(
+            Joi.string().valid(
+                "employee-volunteering", "community-development", "education-skill-development", 
+                "environment-sustainability", "healthcare", "disaster-relief", 
+                "women-empowerment", "rural-development", "other"
+            )
+        ).min(1).required().messages({
+            "any.required": "At least one CSR focus area is required for corporate accounts",
+            "array.min": "Please select at least one CSR focus area",
+            "any.only": "Invalid CSR focus area selected"
+        }),
+        otherwise: Joi.array().optional()
     })
 });
 
