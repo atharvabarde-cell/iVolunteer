@@ -22,7 +22,7 @@ export type EventData = {
   eventStatus: string;
 };
 
-type NGOContextType = {
+export type NGOContextType = {
   events: EventData[];
   loading: boolean;
   error: string | null;
@@ -30,7 +30,8 @@ type NGOContextType = {
   fetchAvailableEvents: () => Promise<void>;
   participateInEvent: (eventId: string) => Promise<boolean>;
   leaveEvent: (eventId: string) => Promise<boolean>;
-  getUserParticipatedEvents: () => Promise<EventData[]>;
+  getUserParticipatedEvents: () => Promise<void>;
+  onUserStatsUpdate?: () => Promise<void>; // Optional callback for stats refresh
 };
 
 const NGOContext = createContext<NGOContextType | undefined>(undefined);
@@ -107,7 +108,7 @@ export const NGOProvider = ({ children }: { children: ReactNode }) => {
       );
 
       const responseData = res.data as any;
-      toast.success(`Participation successful! ${responseData.pointsEarned ? `You earned ${responseData.pointsEarned} coins!` : ''}`);
+      toast.success("Participation successful!");
       return true;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "Participation failed";

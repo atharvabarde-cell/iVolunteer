@@ -1,5 +1,6 @@
 import { Event } from "../models/Event.js";
 import { ApiError } from "../utils/ApiError.js";
+import mongoose from "mongoose";
 
 
 const createEvent = async (data, organizationId, organizationName) => {
@@ -156,15 +157,14 @@ const participateInEvent = async (eventId, userId) => {
 
     // Award participation points to user
     const User = (await import("../models/User.js")).User;
+    const { ParticipationReward } = await import("../controllers/rewards.controller.js");
+    
     const user = await User.findById(userId);
     if (user) {
-      const participationPoints = Math.floor((currentEvent.pointsOffered || 50) * 0.1); // 10% of event points for joining
-      user.coins = (user.coins || 0) + participationPoints;
-      await user.save();
-      
+      // No coins awarded for participation - just return the updated event
       return {
         event: await Event.findById(eventId).populate('participants', 'name email'),
-        pointsEarned: participationPoints
+        pointsEarned: 0
       };
     }
 

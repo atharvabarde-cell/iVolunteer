@@ -38,7 +38,149 @@ dailyRewardSchema.index({ userId: 1, date: 1, type: 1 }, { unique: true });
 
 const DailyReward = mongoose.model("DailyReward", dailyRewardSchema);
 
+// Model to track participation rewards
+const participationRewardSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    eventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Event",
+        required: true
+    },
+    coins: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    type: {
+        type: String,
+        enum: ["participation", "completion"],
+        default: "participation"
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+});
+
+// Compound index to ensure one reward per user per event
+participationRewardSchema.index({ userId: 1, eventId: 1, type: 1 }, { unique: true });
+
+const ParticipationReward = mongoose.model("ParticipationReward", participationRewardSchema);
+
 export const rewardsController = {
+    // Debug endpoint to check reward records
+    debugRewardRecords: async (req, res) => {
+        try {
+            const userId = req.user._id;
+            
+            console.log('Debug: Checking reward records for userId:', userId);
+
+            // Get all daily rewards for user
+            const dailyRewards = await DailyReward.find({ userId }).sort({ createdAt: -1 });
+            console.log('Debug: Daily rewards found:', dailyRewards.length);
+
+            // Get all registration rewards for user
+            const registrationRewards = await RegistrationReward.find({ userId }).sort({ createdAt: -1 });
+            console.log('Debug: Registration rewards found:', registrationRewards.length);
+
+            // Get all participation rewards for user
+            const participationRewards = await ParticipationReward.find({ userId }).sort({ createdAt: -1 });
+            console.log('Debug: Participation rewards found:', participationRewards.length);
+
+            return res.status(200).json(
+                new ApiResponse(200, {
+                    dailyRewards,
+                    registrationRewards,
+                    participationRewards,
+                    userId
+                })
+            );
+
+        } catch (error) {
+            logger.error("Error debugging reward records", {
+                error: error.message,
+                stack: error.stack
+            });
+
+            return res.status(500).json({
+                success: false,
+                message: "Failed to debug reward records"
+            });
+        }
+    },
+
+    // Migration function to create participation reward records for existing participations
+    migrateParticipationRewards: async (req, res) => {
+        try {
+            // Import Event model
+            const { Event } = await import("../models/Event.js");
+            
+            // Get all events with participants
+            const eventsWithParticipants = await Event.find({
+                participants: { $exists: true, $ne: [] }
+            }).populate('participants', '_id');
+
+            let migratedCount = 0;
+            
+            for (const event of eventsWithParticipants) {
+                if (Array.isArray(event.participants) && event.participants.length > 0) {
+                    for (const participant of event.participants) {
+                        const userId = participant._id || participant;
+                        
+                        // Check if participation reward already exists
+                        const existingReward = await ParticipationReward.findOne({
+                            userId,
+                            eventId: event._id,
+                            type: "participation"
+                        });
+
+                        if (!existingReward) {
+                            // Calculate participation points (10% of event points)
+                            const participationPoints = Math.floor((event.pointsOffered || 50) * 0.1);
+                            
+                            // Create participation reward record
+                            const participationReward = new ParticipationReward({
+                                userId,
+                                eventId: event._id,
+                                coins: participationPoints,
+                                type: "participation"
+                            });
+                            
+                            await participationReward.save();
+                            migratedCount++;
+                        }
+                    }
+                }
+            }
+
+            logger.info("Participation rewards migration completed", {
+                migratedCount
+            });
+
+            return res.status(200).json(
+                new ApiResponse(200, {
+                    message: `Migration completed! Created ${migratedCount} participation reward records.`,
+                    migratedCount
+                })
+            );
+
+        } catch (error) {
+            logger.error("Error migrating participation rewards", {
+                error: error.message,
+                stack: error.stack
+            });
+
+            return res.status(500).json({
+                success: false,
+                message: "Failed to migrate participation rewards"
+            });
+        }
+    },
+
     // Claim daily quote reward
     claimDailyReward: async (req, res) => {
         try {
@@ -146,25 +288,69 @@ export const rewardsController = {
                 date: today
             });
 
-            // Calculate total coins earned (lifetime) - include both daily rewards and registration bonus
+            // Calculate total coins earned (lifetime) - include daily, registration, and participation rewards
+            console.log('Debug: userId for aggregation:', userId, 'Type:', typeof userId);
+            
+            // Convert userId to ObjectId if it's a string
+            const userObjectId = typeof userId === 'string' ? new mongoose.Types.ObjectId(userId) : userId;
+            
             const dailyCoinsEarned = await DailyReward.aggregate([
-                { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+                { $match: { userId: userObjectId } },
                 { $group: { _id: null, total: { $sum: "$coins" } } }
             ]);
 
+            console.log('Debug: Daily coins aggregation result:', dailyCoinsEarned);
+
             const registrationCoinsEarned = await RegistrationReward.aggregate([
-                { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+                { $match: { userId: userObjectId } },
                 { $group: { _id: null, total: { $sum: "$coins" } } }
             ]);
+
+            console.log('Debug: Registration coins aggregation result:', registrationCoinsEarned);
+
+            const participationCoinsEarned = await ParticipationReward.aggregate([
+                { $match: { userId: userObjectId } },
+                { $group: { _id: null, total: { $sum: "$coins" } } }
+            ]);
+
+            console.log('Debug: Participation coins aggregation result:', participationCoinsEarned);
+
+            // Alternative approach: Use simple find queries and calculate totals manually
+            const dailyRewardsRecords = await DailyReward.find({ userId: userObjectId });
+            const registrationRewardsRecords = await RegistrationReward.find({ userId: userObjectId });
+            const participationRewardsRecords = await ParticipationReward.find({ userId: userObjectId });
+
+            const dailyCoinsAlternative = dailyRewardsRecords.reduce((sum, record) => sum + (record.coins || 0), 0);
+            const registrationCoinsAlternative = registrationRewardsRecords.reduce((sum, record) => sum + (record.coins || 0), 0);
+            const participationCoinsAlternative = participationRewardsRecords.reduce((sum, record) => sum + (record.coins || 0), 0);
+
+            console.log('Debug: Alternative calculation results:', {
+                dailyCoinsAlternative,
+                registrationCoinsAlternative,
+                participationCoinsAlternative,
+                dailyRecordsCount: dailyRewardsRecords.length,
+                registrationRecordsCount: registrationRewardsRecords.length,
+                participationRecordsCount: participationRewardsRecords.length
+            });
 
             // Calculate current streak
             const streak = await calculateStreak(userId);
 
-            // Calculate total spent (assuming coins can only be spent, so totalEarned - currentCoins = spent)
-            const dailyCoins = dailyCoinsEarned[0]?.total || 0;
-            const registrationCoins = registrationCoinsEarned[0]?.total || 0;
-            const totalEarned = dailyCoins + registrationCoins;
+            // Calculate total spent (using alternative calculation for now)
+            const dailyCoins = dailyCoinsAlternative;
+            const registrationCoins = registrationCoinsAlternative;
+            const participationCoins = participationCoinsAlternative;
+            const totalEarned = dailyCoins + registrationCoins + participationCoins;
             const totalSpent = Math.max(0, totalEarned - user.coins);
+
+            console.log('Debug: Final calculation breakdown:', {
+                dailyCoins,
+                registrationCoins,
+                participationCoins,
+                totalEarned,
+                userCoins: user.coins,
+                totalSpent
+            });
 
             const rewardStatus = {
                 activeCoins: user.coins,
@@ -327,4 +513,4 @@ async function calculateStreak(userId) {
     return streak;
 }
 
-export { DailyReward };
+export { DailyReward, ParticipationReward };
