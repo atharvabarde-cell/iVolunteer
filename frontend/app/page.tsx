@@ -25,6 +25,7 @@ import Usermanagementtable from "@/components/Usermanagementtable";
 import Userrewardstoredash from "@/components/Userrewardstoredash";
 import DonationEventButton from "@/components/Donationeventbutton";
 import Donationeventbutton from "@/components/Donationeventbutton";
+import PointsDisplay from "@/components/PointsDisplay.";
 
 // Dashboard components
 function AdminDashboard() {
@@ -68,6 +69,7 @@ function VolunteerDashboard() {
     <section className="w-full h-full bg-gray-50 min-w-[350px]">
       <Header />
       <Useranalytics />
+      <PointsDisplay/>
       <Dailyquote />
       <Useractivity />
       <Userrewardstoredash />

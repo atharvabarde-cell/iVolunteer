@@ -7,5 +7,6 @@ const eventRouter = express.Router();
 eventRouter.post("/add-event", authMiddleware, ngoEventController.addEvent);
 eventRouter.get("/sponsorship", ngoEventController.getSponsorshipEvents);
 eventRouter.get("/all-event",ngoEventController.getAllPublishedEvents)
+eventRouter.get("/organization", authMiddleware,ngoEventController.getEventsByOrganization)
 
 export default eventRouter;

@@ -10,6 +10,7 @@ import { PostProvider } from "@/contexts/post-context";
 import { ToastContainer } from "react-toastify";
 import { CorporateProvider } from "@/contexts/corporate-context";
 import { DonationEventProvider } from "@/contexts/donationevents-context";
+import { PointsProvider } from "@/contexts/points-context";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -20,6 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
             <CorporateProvider>
               <PostProvider>
                 <DonationEventProvider>
+                  <PointsProvider>
               {children}
               <ToastContainer
                 position="top-right"
@@ -30,6 +32,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 draggable
                 theme="light"
               />
+              </PointsProvider>
               </DonationEventProvider>
               </PostProvider>
             </CorporateProvider>

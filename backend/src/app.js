@@ -24,6 +24,7 @@ import eventRouter from "./routes/event.routes.js";
 import donationRouter from "./routes/donation.routes.js";
 import donationEventRouter from "./routes/donationEvent.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
+import pointsBadgeRouter from "./routes/pointsBadge.routes.js";
 
 const app = express();
 
@@ -72,6 +73,9 @@ app.use("/api/v1/donation", globalRateLimiting, donationRouter);
 
 // Payment routes
 app.use("/api/v1/payment", globalRateLimiting, paymentRouter);
+
+// pointsBadge routes
+app.use("/api/v1/points-badge", globalRateLimiting, pointsBadgeRouter);
 
 app.use(errorHandler);
 app.use(notFoundHandler);

@@ -41,8 +41,19 @@ const getSponsorshipEvents = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, availableSponsorEvent: events });
 });
 
+const getEventsByOrganization = asyncHandler(async (req, res) => {
+  const organizationId = req.user.id;
+  const events = await ngoEventService.getEventsByOrganization(organizationId);
+
+  res.status(200).json({
+    success: true,
+    events,
+  });
+});
+
 export const ngoEventController = {
   addEvent,
   getAllPublishedEvents,
   getSponsorshipEvents,
+  getEventsByOrganization
 };
