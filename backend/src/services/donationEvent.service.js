@@ -6,5 +6,18 @@ export const createEventService = async (ngoId, eventData) => {
 };
 
 export const getAllActiveEventsService = async () => {
-  return DonationEvent.find({ status: "active" }).populate("ngoId", "name email").sort({ createdAt: -1 });
+  return DonationEvent.find({ status: "active" })
+    .populate("ngoId", "name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize")
+    .sort({ createdAt: -1 });
+};
+
+export const getEventByIdService = async (eventId) => {
+  const event = await DonationEvent.findById(eventId)
+    .populate("ngoId", "name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize");
+    
+  if (!event) {
+    throw new Error("Donation event not found");
+  }
+  
+  return event;
 };

@@ -20,3 +20,13 @@ export const getAllEvents = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const getEventById = async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const event = await eventService.getEventByIdService(eventId);
+    res.json({ success: true, event });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

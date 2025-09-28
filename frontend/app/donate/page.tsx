@@ -175,6 +175,18 @@ export default function DonatePage() {
 
                         {/* Donation Actions */}
                         <div className="space-y-4">
+                          {/* View Details Button */}
+                          <div className="flex justify-center mb-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full h-10 font-medium text-slate-700 border-slate-300 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 transition-all duration-200"
+                              onClick={() => window.location.href = `/donate/${event._id}`}
+                            >
+                              📋 View Full Details & Organization Info
+                            </Button>
+                          </div>
+
                           <div>
                             <h4 className="text-sm font-medium text-slate-700 mb-3">Quick Donate</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
