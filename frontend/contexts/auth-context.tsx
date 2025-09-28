@@ -23,13 +23,30 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string, role?: UserRole) => Promise<boolean>;
-  signup: (
-    name: string,
-    email: string,
-    password: string,
-    role: UserRole
-  ) => Promise<boolean>;
+  signup: (data: SignupData) => Promise<boolean>;
   logout: () => void;
+}
+
+interface SignupData {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  // NGO-specific fields
+  organizationType?: string;
+  websiteUrl?: string;
+  yearEstablished?: number;
+  contactNumber?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+  };
+  ngoDescription?: string;
+  focusAreas?: string[];
+  organizationSize?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,18 +100,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     message: string;
   }
 
-  const signup = async (
-    name: string,
-    email: string,
-    password: string,
-    role: UserRole
-  ): Promise<boolean> => {
+  const signup = async (signupData: SignupData): Promise<boolean> => {
     setIsLoading(true);
     try {
-      console.log("Attempting signup for:", { name, email, role });
+      console.log("Attempting signup for:", { name: signupData.name, email: signupData.email, role: signupData.role });
       const { data } = await axios.post<AuthResponse>(
         "http://localhost:5000/api/v1/auth/register",
-        { name, email, password, role },
+        signupData,
         { withCredentials: true } // if your backend uses cookies for JWT
       );
 
@@ -143,6 +155,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         "Signup failed:",
         err.response?.data?.message || err.message
       );
+      
+      // Show specific error message from backend with better formatting
+      let errorMessage = err.response?.data?.message || err.message || "An unexpected error occurred during signup";
+      
+      // Parse and improve validation error messages
+      if (errorMessage.includes("fails to match the required pattern")) {
+        if (errorMessage.includes("address.zip")) {
+          errorMessage = "Invalid ZIP/PIN code format. For India, please enter a 6-digit PIN code.";
+        } else if (errorMessage.includes("contactNumber")) {
+          errorMessage = "Invalid contact number format. Please enter a valid phone number with at least 10 digits.";
+        } else if (errorMessage.includes("websiteUrl")) {
+          errorMessage = "Invalid website URL format. Please enter a valid URL starting with http:// or https://";
+        } else {
+          errorMessage = "Please check the format of your input fields and try again.";
+        }
+      } else if (errorMessage.includes("must contain at least 10 words")) {
+        errorMessage = "Organization description is too short. Please provide at least 10 words describing your organization.";
+      } else if (errorMessage.includes("An account with this email already exists")) {
+        errorMessage = "An account with this email already exists. Please try logging in or use a different email address.";
+      } else if (errorMessage.includes("is required")) {
+        // Extract field name from required error
+        const fieldMatch = errorMessage.match(/"([^"]+)" is required/);
+        if (fieldMatch) {
+          const fieldName = fieldMatch[1].replace(/([A-Z])/g, ' $1').toLowerCase();
+          errorMessage = `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required for your registration.`;
+        }
+      }
+      
+      toast({
+        title: "Registration Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
       setIsLoading(false);
       return false;
     }
@@ -190,6 +236,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         "Login failed:",
         err.response?.data?.message || err.message
       );
+      
+      // Show specific error message from backend with better formatting
+      let errorMessage = err.response?.data?.message || err.message || "An unexpected error occurred during login";
+      
+      // Parse and improve login error messages
+      if (errorMessage.includes("User does not exist")) {
+        errorMessage = "No account found with this email address. Please check your email or sign up for a new account.";
+      } else if (errorMessage.includes("Invalid password")) {
+        errorMessage = "Incorrect password. Please check your password and try again.";
+      } else if (errorMessage.includes("validation")) {
+        errorMessage = "Please check your email and password format and try again.";
+      }
+      
+      toast({
+        title: "Login Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
       setIsLoading(false);
       return false;
     }
