@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useNGO } from "@/contexts/ngo-context";
+import api from "@/lib/api";
+import { toast } from "react-toastify";
 import {
   Calendar,
   MapPin,
@@ -16,6 +18,11 @@ import {
   Target,
   Tag,
   Image as ImageIcon,
+  Building,
+  Globe,
+  Phone,
+  Mail,
+  MapPinIcon,
 } from "lucide-react";
 import { Header } from "@/components/header";
 
@@ -25,35 +32,86 @@ const EventDetailsPage: React.FC = () => {
   const { user } = useAuth();
   const eventId = params.eventId as string;
   
-  const { events, fetchAvailableEvents, loading, error, participateInEvent, leaveEvent } = useNGO();
+  const { events, fetchAvailableEvents, loading: contextLoading, error: contextError, participateInEvent, leaveEvent } = useNGO();
   const [event, setEvent] = useState<any>(null);
   const [participating, setParticipating] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [participated, setParticipated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (events.length === 0) {
-      fetchAvailableEvents();
-    }
-  }, []);
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
 
-  useEffect(() => {
-    if (events.length > 0 && eventId) {
-      const foundEvent = events.find((e) => e._id === eventId);
-      setEvent(foundEvent);
+  // Fetch single event with NGO details
+  const fetchEventDetails = async () => {
+    if (!eventId) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('Fetching event details for:', eventId);
       
-      if (foundEvent) {
-        // Check if user is already participating
-        const currentUserId = user?._id || "";
-        setParticipated(
-          Array.isArray(foundEvent.participants) && 
-          foundEvent.participants.some((participant: any) => 
-            participant._id === currentUserId || participant === currentUserId
-          )
-        );
+      // Try to fetch from the new single event endpoint first
+      try {
+        const response = await api.get(`/v1/event/${eventId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          withCredentials: true,
+        });
+
+        const responseData = response.data as any;
+        if (responseData.success && responseData.event) {
+          console.log('Event fetched successfully:', responseData.event);
+          console.log('NGO Details:', responseData.event.organizationId);
+          setEvent(responseData.event);
+          return;
+        }
+      } catch (singleEventError) {
+        console.log('Single event endpoint failed, trying all events endpoint');
+        
+        // Fallback to fetching all events
+        const allEventsResponse = await api.get("/v1/event/all-event", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          withCredentials: true,
+        });
+
+        const allEventsData = allEventsResponse.data as any;
+        const events = allEventsData.events || [];
+        const foundEvent = events.find((e: any) => e._id === eventId);
+        
+        if (foundEvent) {
+          console.log('Event found in all events:', foundEvent);
+          setEvent(foundEvent);
+        } else {
+          throw new Error("Event not found");
+        }
       }
+    } catch (err: any) {
+      console.error('Error fetching event:', err);
+      const errorMessage = err.response?.data?.message || "Failed to fetch event details";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
-  }, [events, eventId]);
+  };
+
+  useEffect(() => {
+    fetchEventDetails();
+  }, [eventId]);
+
+  useEffect(() => {
+    if (event && user) {
+      // Check if user is already participating
+      const currentUserId = user._id || "";
+      setParticipated(
+        Array.isArray(event.participants) && 
+        event.participants.some((participant: any) => 
+          participant._id === currentUserId || participant === currentUserId
+        )
+      );
+    }
+  }, [event, user]);
 
   const handleParticipate = async () => {
     if (!event?._id) return;
@@ -63,8 +121,8 @@ const EventDetailsPage: React.FC = () => {
       const success = await participateInEvent(event._id);
       if (success) {
         setParticipated(true);
-        // Refresh events to get updated data
-        setTimeout(() => fetchAvailableEvents(), 500);
+        // Refresh event details to get updated data with NGO details
+        setTimeout(() => fetchEventDetails(), 500);
       }
     } catch (err) {
       console.error("Participation failed:", err);
@@ -81,8 +139,8 @@ const EventDetailsPage: React.FC = () => {
       const success = await leaveEvent(event._id);
       if (success) {
         setParticipated(false);
-        // Refresh events to get updated data
-        setTimeout(() => fetchAvailableEvents(), 500);
+        // Refresh event details to get updated data with NGO details
+        setTimeout(() => fetchEventDetails(), 500);
       }
     } catch (err) {
       console.error("Leave event failed:", err);
@@ -214,6 +272,194 @@ const EventDetailsPage: React.FC = () => {
                   {event.description || "No description available for this event."}
                 </p>
               </div>
+
+              {/* NGO Information */}
+              {event.organizationId && typeof event.organizationId === 'object' && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">About the Organization</h2>
+                  
+                  {/* Debug info - remove in production */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+                      <strong>Debug:</strong> organizationId type: {typeof event.organizationId}, 
+                      keys: {event.organizationId && typeof event.organizationId === 'object' ? Object.keys(event.organizationId).join(', ') : 'N/A'}
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Organization Basic Info */}
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-3">
+                        <Building className="h-5 w-5 text-blue-600 mt-1" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Organization Name</p>
+                          <p className="text-sm text-gray-600">
+                            {event.organizationId.name || event.organization}
+                          </p>
+                        </div>
+                      </div>
+
+                      {event.organizationId.organizationType && (
+                        <div className="flex items-start space-x-3">
+                          <Tag className="h-5 w-5 text-purple-600 mt-1" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Organization Type</p>
+                            <p className="text-sm text-gray-600 capitalize">
+                              {event.organizationId.organizationType.replace('-', ' ')}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {event.organizationId.yearEstablished && (
+                        <div className="flex items-start space-x-3">
+                          <Calendar className="h-5 w-5 text-green-600 mt-1" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Established</p>
+                            <p className="text-sm text-gray-600">
+                              {event.organizationId.yearEstablished}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {event.organizationId.organizationSize && (
+                        <div className="flex items-start space-x-3">
+                          <Users className="h-5 w-5 text-orange-600 mt-1" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Organization Size</p>
+                            <p className="text-sm text-gray-600">
+                              {event.organizationId.organizationSize} employees
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="space-y-4">
+                      {event.organizationId.email && (
+                        <div className="flex items-start space-x-3">
+                          <Mail className="h-5 w-5 text-red-600 mt-1" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Email</p>
+                            <a 
+                              href={`mailto:${event.organizationId.email}`}
+                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {event.organizationId.email}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {event.organizationId.contactNumber && (
+                        <div className="flex items-start space-x-3">
+                          <Phone className="h-5 w-5 text-green-600 mt-1" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Phone</p>
+                            <a 
+                              href={`tel:${event.organizationId.contactNumber}`}
+                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {event.organizationId.contactNumber}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {event.organizationId.websiteUrl && (
+                        <div className="flex items-start space-x-3">
+                          <Globe className="h-5 w-5 text-blue-600 mt-1" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Website</p>
+                            <a 
+                              href={event.organizationId.websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              Visit Website
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {event.organizationId.address && (
+                        <div className="flex items-start space-x-3">
+                          <MapPinIcon className="h-5 w-5 text-purple-600 mt-1" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Address</p>
+                            <div className="text-sm text-gray-600">
+                              {event.organizationId.address.street && (
+                                <p>{event.organizationId.address.street}</p>
+                              )}
+                              <p>
+                                {[
+                                  event.organizationId.address.city,
+                                  event.organizationId.address.state,
+                                  event.organizationId.address.zip
+                                ].filter(Boolean).join(', ')}
+                              </p>
+                              {event.organizationId.address.country && (
+                                <p>{event.organizationId.address.country}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Organization Description */}
+                  {event.organizationId.ngoDescription && (
+                    <div className="mt-6 pt-6 border-t border-gray-100">
+                      <h3 className="text-lg font-medium text-gray-900 mb-3">About Us</h3>
+                      <p className="text-gray-600 leading-relaxed">
+                        {event.organizationId.ngoDescription}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Focus Areas */}
+                  {event.organizationId.focusAreas && event.organizationId.focusAreas.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-gray-100">
+                      <h3 className="text-lg font-medium text-gray-900 mb-3">Focus Areas</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {event.organizationId.focusAreas.map((area: string, index: number) => (
+                          <span 
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize"
+                          >
+                            {area.replace('-', ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Fallback for basic organization info when NGO details are not populated */}
+              {(!event.organizationId || typeof event.organizationId !== 'object') && event.organization && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">About the Organization</h2>
+                  
+                  <div className="flex items-start space-x-3">
+                    <Building className="h-5 w-5 text-blue-600 mt-1" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Organization Name</p>
+                      <p className="text-sm text-gray-600">{event.organization}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      <strong>Note:</strong> Detailed organization information is not available for this event. Only the organization name is provided.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Event Details Grid */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
