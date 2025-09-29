@@ -40,6 +40,30 @@ const postSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    title: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 200
+    },
+    category: {
+        type: String,
+        required: true,
+        enum: [
+            'Volunteer Experience',
+            'Community Service',
+            'Environmental Action',
+            'Healthcare Initiative',
+            'Education Support',
+            'Animal Welfare',
+            'Disaster Relief',
+            'Fundraising',
+            'Social Impact',
+            'Personal Story',
+            'Achievement',
+            'Other'
+        ]
+    },
     description: {
         type: String,
         required: true,

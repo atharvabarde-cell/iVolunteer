@@ -161,9 +161,7 @@ export default function PostsPage() {
                     ) : (
                         <>
                             {posts.map((post) => (
-                                <div key={post._id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-primary/10 overflow-hidden hover:shadow-xl transition-all duration-300">
-                                    <PostDisplay post={post} />
-                                </div>
+                                <PostDisplay key={post._id} post={post} />
                             ))}
 
                             {posts.length === 0 && (

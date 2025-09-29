@@ -1,6 +1,31 @@
 import Post from '../models/Post.js';
 import { deleteImage } from '../config/cloudinary.js';
 
+// Get all available categories
+export const getCategories = async (req, res) => {
+    try {
+        const categories = [
+            'Volunteer Experience',
+            'Community Service',
+            'Environmental Action',
+            'Healthcare Initiative',
+            'Education Support',
+            'Animal Welfare',
+            'Disaster Relief',
+            'Fundraising',
+            'Social Impact',
+            'Personal Story',
+            'Achievement',
+            'Other'
+        ];
+        
+        res.json({ categories });
+    } catch (error) {
+        console.error('Error getting categories:', error);
+        res.status(500).json({ message: 'Error getting categories' });
+    }
+};
+
 // Create a new post
 export const createPost = async (req, res) => {
     try {
@@ -8,9 +33,20 @@ export const createPost = async (req, res) => {
             return res.status(400).json({ message: 'Image is required' });
         }
 
+        const { title, category, description } = req.body;
+
+        // Validate required fields
+        if (!title || !category || !description) {
+            return res.status(400).json({ 
+                message: 'Title, category, and description are required' 
+            });
+        }
+
         const post = new Post({
             user: req.user._id,
-            description: req.body.description,
+            title: title.trim(),
+            category,
+            description: description.trim(),
             imageUrl: req.file.path,
             cloudinaryPublicId: req.file.filename
         });
@@ -25,14 +61,21 @@ export const createPost = async (req, res) => {
     }
 };
 
-// Get all posts with pagination
+// Get all posts with pagination and optional category filtering
 export const getPosts = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+        const { category } = req.query;
 
-        const posts = await Post.find()
+        // Build query object
+        const query = {};
+        if (category && category !== 'all') {
+            query.category = category;
+        }
+
+        const posts = await Post.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
@@ -40,7 +83,7 @@ export const getPosts = async (req, res) => {
             .populate('comments.user', 'name profilePicture')
             .populate('reactions.user', 'name profilePicture');
 
-        const total = await Post.countDocuments();
+        const total = await Post.countDocuments(query);
         res.json({
             posts,
             currentPage: page,
@@ -166,9 +209,19 @@ export const updatePost = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to update this post' });
         }
 
+        // Update title if provided
+        if (req.body.title !== undefined) {
+            post.title = req.body.title.trim();
+        }
+
+        // Update category if provided
+        if (req.body.category !== undefined) {
+            post.category = req.body.category;
+        }
+
         // Update description if provided
         if (req.body.description !== undefined) {
-            post.description = req.body.description;
+            post.description = req.body.description.trim();
         }
 
         // Update image if provided

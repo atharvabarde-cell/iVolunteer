@@ -4,6 +4,7 @@ import { upload } from '../config/cloudinary.js';
 import {
     createPost,
     getPosts,
+    getCategories,
     addComment,
     deleteComment,
     toggleReaction,
@@ -12,6 +13,9 @@ import {
 } from '../controllers/post.controller.js';
 
 const router = express.Router();
+
+// Get all post categories (public route)
+router.get('/categories', getCategories);
 
 // Get all posts (public route)
 router.get('/', getPosts);

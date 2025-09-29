@@ -14,6 +14,8 @@ export interface Post {
         name: string;
         profilePicture?: string;
     };
+    title: string;
+    category: string;
     description: string;
     imageUrl: string;
     cloudinaryPublicId: string;
