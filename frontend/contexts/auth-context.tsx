@@ -2,21 +2,22 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "@/hooks/use-toast";
+import { usePoints } from "./points-context"; // <-- import points context
 
 export type UserRole = "user" | "ngo" | "admin" | "corporate";
 
 export interface User {
-  _id: string
-  id: string
-  email: string
-  name: string
-  role: UserRole
-  points: number
-  coins: number
-  volunteeredHours: number
-  totalRewards: number
-  completedEvents: string[]
-  createdAt: string
+  _id: string;
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  points: number;
+  coins: number;
+  volunteeredHours: number;
+  totalRewards: number;
+  completedEvents: string[];
+  createdAt: string;
 }
 
 interface AuthContextType {
@@ -38,33 +39,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ✅ Correctly usePoints inside component
+  const { earnPoints } = usePoints();
+
   useEffect(() => {
     const savedUser = localStorage.getItem("auth-user");
     if (savedUser) setUser(JSON.parse(savedUser));
     setIsLoading(false);
   }, []);
 
-  // Listen for token expiration events
   useEffect(() => {
     const handleTokenExpired = () => {
-      console.log('Token expired event received, logging out user');
-      
-      // Show a user-friendly toast notification
       toast({
         title: "Session Expired",
         description: "Your session has expired. Please log in again.",
         variant: "destructive",
       });
-      
       logout();
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('token-expired', handleTokenExpired);
-      
-      return () => {
-        window.removeEventListener('token-expired', handleTokenExpired);
-      };
+    if (typeof window !== "undefined") {
+      window.addEventListener("token-expired", handleTokenExpired);
+      return () => window.removeEventListener("token-expired", handleTokenExpired);
     }
   }, []);
 
@@ -93,10 +89,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data } = await axios.post<AuthResponse>(
         "http://localhost:5000/api/v1/auth/register",
         { name, email, password, role },
-        { withCredentials: true } // if your backend uses cookies for JWT
+        { withCredentials: true }
       );
 
-      // Map the response user to our User interface
       const mappedUser: User = {
         _id: data.user.userId,
         id: data.user.userId,
@@ -108,22 +103,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         volunteeredHours: 0,
         totalRewards: 0,
         completedEvents: [],
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
       setUser(mappedUser);
       localStorage.setItem("auth-user", JSON.stringify(mappedUser));
-      if (data.tokens) {
-        localStorage.setItem("auth-token", data.tokens.accessToken);
-        localStorage.setItem("refresh-token", data.tokens.refreshToken);
+      localStorage.setItem("auth-token", data.tokens.accessToken);
+      localStorage.setItem("refresh-token", data.tokens.refreshToken);
+
+      // ✅ Award points after registration
+      if (earnPoints) {
+        await earnPoints("register"); // PTS001
       }
+
       setIsLoading(false);
       return true;
     } catch (err: any) {
-      console.error(
-        "Signup failed:",
-        err.response?.data?.message || err.message
-      );
+      console.error("Signup failed:", err.response?.data?.message || err.message);
       setIsLoading(false);
       return false;
     }
@@ -142,7 +138,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         { withCredentials: true }
       );
 
-      // Map the response user to our User interface
       const mappedUser: User = {
         _id: data.user.userId,
         id: data.user.userId,
@@ -154,7 +149,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         volunteeredHours: 0,
         totalRewards: 0,
         completedEvents: [],
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
       setUser(mappedUser);
@@ -162,29 +157,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem("auth-token", data.tokens.accessToken);
       localStorage.setItem("refresh-token", data.tokens.refreshToken);
 
-      setUser(data.user);
-      localStorage.setItem("auth-user", JSON.stringify(data.user));
-      localStorage.setItem("auth-token", data.tokens.accessToken);
-
       setIsLoading(false);
       return true;
     } catch (err: any) {
-      console.error(
-        "Login failed:",
-        err.response?.data?.message || err.message
-      );
+      console.error("Login failed:", err.response?.data?.message || err.message);
       setIsLoading(false);
       return false;
     }
   };
 
   const logout = () => {
-    setUser(null)
-    localStorage.removeItem("auth-user")
-    localStorage.removeItem("auth-token")
-    localStorage.removeItem("refresh-token")
-    console.log('User logged out successfully')
-  }
+    setUser(null);
+    localStorage.removeItem("auth-user");
+    localStorage.removeItem("auth-token");
+    localStorage.removeItem("refresh-token");
+    console.log("User logged out successfully");
+  };
 
   return (
     <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>

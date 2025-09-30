@@ -51,9 +51,32 @@ const getEventsByOrganization = asyncHandler(async (req, res) => {
   });
 });
 
+// Admin: approve or reject event
+const updateEventStatus = asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+  const { status } = req.body;
+
+  const event = await ngoEventService.updateEventStatus(eventId, status);
+
+  res.status(200).json({
+    success: true,
+    message: `Event ${status} successfully`,
+    event,
+  });
+});
+
+// Admin: get all pending events
+const getPendingEvents = asyncHandler(async (req, res) => {
+  const events = await ngoEventService.getPendingEvents();
+  res.status(200).json({ success: true, events });
+});
+
+
 export const ngoEventController = {
   addEvent,
   getAllPublishedEvents,
   getSponsorshipEvents,
-  getEventsByOrganization
+  getEventsByOrganization,
+  updateEventStatus,
+  getPendingEvents,
 };

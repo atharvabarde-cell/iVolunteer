@@ -1,10 +1,26 @@
 import { DonationEvent } from "../models/DonationEvent.js";
 
 export const createEventService = async (ngoId, eventData) => {
-  const event = await DonationEvent.create({ ngoId, ...eventData });
+  const event = await DonationEvent.create({ ngoId, ...eventData, approvalStatus: "pending"  });
   return event;
 };
 
 export const getAllActiveEventsService = async () => {
-  return DonationEvent.find({ status: "active" }).populate("ngoId", "name email").sort({ createdAt: -1 });
+  return DonationEvent.find({ status: "active", approvalStatus: "approved" })
+    .populate("ngoId", "name email")
+    .sort({ createdAt: -1 });
+};
+
+export const getPendingEventsService = async () => {
+  return DonationEvent.find({ approvalStatus: "pending" })
+    .populate("ngoId", "name email")
+    .sort({ createdAt: -1 });
+};
+
+export const updateEventApprovalService = async (eventId, status) => {
+  return DonationEvent.findByIdAndUpdate(
+    eventId,
+    { approvalStatus: status },
+    { new: true }
+  );
 };

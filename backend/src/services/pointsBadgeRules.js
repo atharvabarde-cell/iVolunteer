@@ -1,22 +1,60 @@
 export const pointsRules = [
-  { id: "PTS001", type: "eventParticipation", points: 50, description: "Participate in 1 event" },
-  { id: "PTS002", type: "eventDonation", points: 100, description: "Donate in 1 event" },
-  { id: "PTS009", type: "firstDonation", points: 50, description: "First donation bonus" }, 
-  { id: "PTS003", type: "dailyLogin", points: 10, description: "Daily login" },
-  { id: "PTS004", type: "firstEvent", points: 75, description: "Complete first event" },
-  { id: "PTS005", type: "eventFeedback", points: 20, description: "Give feedback for an event" },
-  { id: "PTS006", type: "referral", points: 150, description: "Refer a friend" },
-  { id: "PTS007", type: "milestone5Events", points: 250, description: "Participate in 5 events" },
-  { id: "PTS008", type: "milestone10Events", points: 500, description: "Participate in 10 events" },
+  {
+    id: "PTS001",
+    type: "eventParticipation",
+    points: 50,
+    description: "Register",
+  },
+  {
+    id: "PTS003",
+    type: "everyDonation",
+    points: 10,
+    description: "every donation",
+  },
+  { id: "PTS004", type: "addPost", points: 5, description: "On every post" },
 ];
 
+// services/pointsBadgeRules.js
 
 export const badgeRules = [
-  { id: "BDG001", name: "Rising Star", criteriaPoints: 50, description: "Complete first event", tier: "Bronze", icon: "⭐" },
-  { id: "BDG002", name: "Event Enthusiast", criteriaPoints: 250, description: "Participate in 5 events", tier: "Silver", icon: "🏆" },
-  { id: "BDG003", name: "Event Champion", criteriaPoints: 500, description: "Participate in 10 events", tier: "Gold", icon: "🥇" },
-  { id: "BDG004", name: "Generous Heart", criteriaPoints: 100, description: "Donate in 1–3 events", tier: "Silver", icon: "❤️" },
-  { id: "BDG005", name: "Daily Devotee", criteriaPoints: 70, description: "Login 7 days in a row", tier: "Bronze", icon: "📅" },
-  { id: "BDG006", name: "Connector", criteriaPoints: 150, description: "Refer 1–3 friends", tier: "Silver", icon: "🔗" },
-  { id: "BDG007", name: "Voice of Users", criteriaPoints: 100, description: "Give feedback for 5 events", tier: "Bronze", icon: "🗨️" },
+  {
+    id: "BDG001",
+    name: "Rookie Hero",
+    unlockLevel: 1,
+    description: "Welcome to the journey! Reach Level 1",
+    tier: "Common",
+    icon: "🎉",
+  },
+  {
+    id: "BDG002",
+    name: "Rising Star",
+    unlockLevel: 10,
+    description: "Keep going! Reach Level 10",
+    tier: "Rare",
+    icon: "⭐",
+  },
+  {
+    id: "BDG003",
+    name: "Trailblazer",
+    unlockLevel: 25,
+    description: "You are unstoppable! Reach Level 25",
+    tier: "Epic",
+    icon: "🔥",
+  },
+  {
+    id: "BDG004",
+    name: "Legend in Making",
+    unlockLevel: 50,
+    description: "Halfway to greatness! Reach Level 50",
+    tier: "Legendary",
+    icon: "🏆",
+  },
+  {
+    id: "BDG005",
+    name: "Ultimate Champion",
+    unlockLevel: 100,
+    description: "You are a legend! Reach Level 100",
+    tier: "Mythic",
+    icon: "👑",
+  },
 ];
