@@ -404,7 +404,9 @@ export function PostDisplay({ post }: PostDisplayProps) {
                         <form onSubmit={handleAddComment} className="flex gap-3">
                             <div className="relative w-8 h-8 rounded-full overflow-hidden shadow-sm">
                                 <Image
-                                    src={user?.profilePicture || '/placeholder-user.jpg'}
+                                    src={
+                                        // user?.profilePicture || 
+                                        '/placeholder-user.jpg'}
                                     alt={user?.name || 'User'}
                                     fill
                                     className="object-cover"
