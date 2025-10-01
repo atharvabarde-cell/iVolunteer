@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Users, 
@@ -11,61 +11,77 @@ import {
   BarChart3,
   Target
 } from "lucide-react";
-
-const stats = [
-  {
-    title: "Active Events",
-    value: 8,
-    icon: <CalendarCheck className="w-6 h-6" />,
-    color: "text-blue-600",
-    bg: "bg-blue-500/10",
-    border: "border-blue-200",
-    trend: { value: 12, isPositive: true }
-  },
-  {
-    title: "Upcoming Events",
-    value: 5,
-    icon: <CalendarClock className="w-6 h-6" />,
-    color: "text-indigo-600",
-    bg: "bg-indigo-500/10",
-    border: "border-indigo-200",
-    trend: { value: 5, isPositive: false }
-  },
-  {
-    title: "Total Volunteers",
-    value: 320,
-    icon: <Users className="w-6 h-6" />,
-    color: "text-green-600",
-    bg: "bg-green-500/10",
-    border: "border-green-200",
-    trend: { value: 24, isPositive: true }
-  },
-  {
-    title: "Funds Raised",
-    value: "$45,000",
-    icon: <PiggyBank className="w-6 h-6" />,
-    color: "text-amber-600",
-    bg: "bg-amber-500/10",
-    border: "border-amber-200",
-    trend: { value: 18, isPositive: true }
-  },
-  {
-    title: "Communities Impacted",
-    value: 15,
-    icon: <HeartHandshake className="w-6 h-6" />,
-    color: "text-rose-600",
-    bg: "bg-rose-500/10",
-    border: "border-rose-200",
-    trend: { value: 8, isPositive: true }
-  },
-];
+import { useNGO } from "@/contexts/ngo-context"; // import your context
 
 const Ngoanalytics = () => {
-  const [isVisible, setIsVisible] = useState(false);
+  const { events, fetchAvailableEvents, loading } = useNGO();
+  const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    setIsVisible(true);
+    fetchAvailableEvents(); // fetch events on mount
   }, []);
+
+  useEffect(() => {
+    // Compute stats dynamically from events
+    const activeEvents = events.filter(e => new Date(e.date) > new Date()).length;
+    const upcomingEvents = events.filter(e => new Date(e.date) > new Date()).length; // same as active for demo
+    const totalVolunteers = events.reduce((acc, e) => acc + (e.participants?.length || 0), 0);
+    const fundsRaised = events.reduce((acc, e) => acc + (e.sponsorshipAmount || 0), 0);
+    const communitiesImpacted = new Set(events.map(e => e.location)).size;
+
+    setStats([
+      {
+        title: "Active Events",
+        value: activeEvents,
+        icon: <CalendarCheck className="w-6 h-6" />,
+        color: "text-blue-600",
+        bg: "bg-blue-500/10",
+        border: "border-blue-200",
+        trend: { value: 12, isPositive: true }
+      },
+      {
+        title: "Upcoming Events",
+        value: upcomingEvents,
+        icon: <CalendarClock className="w-6 h-6" />,
+        color: "text-indigo-600",
+        bg: "bg-indigo-500/10",
+        border: "border-indigo-200",
+        trend: { value: 5, isPositive: false }
+      },
+      {
+        title: "Total Volunteers",
+        value: totalVolunteers,
+        icon: <Users className="w-6 h-6" />,
+        color: "text-green-600",
+        bg: "bg-green-500/10",
+        border: "border-green-200",
+        trend: { value: 24, isPositive: true }
+      },
+      {
+        title: "Funds Raised",
+        value: `$${fundsRaised.toLocaleString()}`,
+        icon: <PiggyBank className="w-6 h-6" />,
+        color: "text-amber-600",
+        bg: "bg-amber-500/10",
+        border: "border-amber-200",
+        trend: { value: 18, isPositive: true }
+      },
+      {
+        title: "Communities Impacted",
+        value: communitiesImpacted,
+        icon: <HeartHandshake className="w-6 h-6" />,
+        color: "text-rose-600",
+        bg: "bg-rose-500/10",
+        border: "border-rose-200",
+        trend: { value: 8, isPositive: true }
+      },
+    ]);
+  }, [events]);
+
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => setIsVisible(true), []);
+
+  if (loading) return <div className="p-6 text-center">Loading...</div>;
 
   return (
     <section className="px-4 py-8 md:px-8 md:py-12 lg:px-12 lg:py-16 bg-gradient-to-br from-gray-50 to-gray-100 ">
@@ -100,13 +116,9 @@ const Ngoanalytics = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className={`text-2xl md:text-3xl font-bold ${stat.color} mt-2`}>
-                    {stat.value}
-                  </p>
+                  <p className={`text-2xl md:text-3xl font-bold ${stat.color} mt-2`}>{stat.value}</p>
                 </div>
-                <div className={`p-3 rounded-lg ${stat.bg}`}>
-                  {stat.icon}
-                </div>
+                <div className={`p-3 rounded-lg ${stat.bg}`}>{stat.icon}</div>
               </div>
               
               <div className="flex items-center mt-2">
@@ -119,38 +131,6 @@ const Ngoanalytics = () => {
             </motion.div>
           ))}
         </div>
-
-        {/* Additional summary section */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className="mt-12 bg-white rounded-2xl p-6 shadow-sm border border-gray-200"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Target className="w-5 h-5 text-blue-600" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-800">Performance Summary</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-blue-50 rounded-xl">
-              <p className="text-sm text-gray-600">Volunteer Growth</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">+24%</p>
-            </div>
-            
-            <div className="text-center p-4 bg-green-50 rounded-xl">
-              <p className="text-sm text-gray-600">Fundraising Target</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">78%</p>
-            </div>
-            
-            <div className="text-center p-4 bg-amber-50 rounded-xl">
-              <p className="text-sm text-gray-600">Event Completion</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">92%</p>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );

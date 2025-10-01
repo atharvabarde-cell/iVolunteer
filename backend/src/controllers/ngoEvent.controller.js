@@ -103,6 +103,37 @@ const migrateParticipantsData = asyncHandler(async (req, res) => {
   }
 });
 
+const getEventsByOrganization = asyncHandler(async (req, res) => {
+  const organizationId = req.user.id;
+  const events = await ngoEventService.getEventsByOrganization(organizationId);
+
+  res.status(200).json({
+    success: true,
+    events,
+  });
+});
+
+// Admin: approve or reject event
+const updateEventStatus = asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+  const { status } = req.body;
+
+  const event = await ngoEventService.updateEventStatus(eventId, status);
+
+  res.status(200).json({
+    success: true,
+    message: `Event ${status} successfully`,
+    event,
+  });
+});
+
+// Admin: get all pending events
+const getPendingEvents = asyncHandler(async (req, res) => {
+  const events = await ngoEventService.getPendingEvents();
+  res.status(200).json({ success: true, events });
+});
+
+
 export const ngoEventController = {
   addEvent,
   getAllPublishedEvents,
@@ -111,4 +142,7 @@ export const ngoEventController = {
   leaveEvent,
   getUserParticipatedEvents,
   migrateParticipantsData,
+  getEventsByOrganization,
+  updateEventStatus,
+  getPendingEvents,
 };

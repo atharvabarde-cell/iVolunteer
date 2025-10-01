@@ -23,27 +23,32 @@ import Useractivity from "@/components/Useractivity";
 import Useranalytics from "@/components/Useranalytics";
 import Usermanagementtable from "@/components/Usermanagementtable";
 import Userrewardstoredash from "@/components/Userrewardstoredash";
-import DonationEventButton from "@/components/Donationeventbutton";
 import Donationeventbutton from "@/components/Donationeventbutton";
+import PointsDisplay from "@/components/PointsDisplay.";
+import { motion } from "framer-motion";
+import PendingRequestsCTA from "@/components/PendingRequestsCTA";
+import Donationreqcta from "@/components/Donationreqcta";
 
 // Dashboard components
 function AdminDashboard() {
   return (
     <section className="bg-[#f4f7fb] h-full w-full min-w-[350px]">
       <Header />
-      <div className="p-6">
+      <div className="p-6 mt-6">
         <h1 className="text-4xl font-bold">Admin Dashboard</h1>
         <p className="text-gray-500 text-xl mt-1">
           A powerful yet effortless way to manage the iVolunteer platform.
         </p>
       </div>
+
       <Adminstats />
-      <h2 className="text-3xl font-semibold mb-4 text-start ml-8 mt-3">
-        User Management
-      </h2>
-      <Usermanagementtable />
-      <Approvalqueueadmin />
+
+      <Donationreqcta />
+      <PendingRequestsCTA />
+
+      <div className="mt-16">
       <Footer />
+      </div>
     </section>
   );
 }
@@ -54,8 +59,8 @@ function NGODashboard() {
       <Header />
       <Ngoanalytics />
       <div className="flex md:flex-row flex-col w-full md:justify-around justify-center items-center">
-      <Eventbutton />
-      <Donationeventbutton/>
+        <Eventbutton />
+        <Donationeventbutton />
       </div>
       <Ngoeventtable />
       <Footer />
@@ -64,9 +69,20 @@ function NGODashboard() {
 }
 
 function VolunteerDashboard() {
+  const { user } = useAuth();
+
   return (
     <section className="w-full h-full bg-gray-50 min-w-[350px]">
       <Header />
+      <motion.h2
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="text-3xl md:text-4xl font-bold text-gray-800 mb-6 md:mb-10 ml-8 mt-5"
+      >
+        Welcome back, {user?.name || "User"}
+      </motion.h2>
+      <PointsDisplay />
       <Useranalytics />
       <Dailyquote />
       <Useractivity />
