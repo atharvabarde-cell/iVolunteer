@@ -4,7 +4,7 @@ import { Event } from "../models/Event.js";
 
 
 export const addEvent = asyncHandler(async (req, res) => {
-  const organizationId = req.user.id;
+  const organizationId = req.user._id;
   const organizationName = req.user.name;
 
   const eventData = {
@@ -39,6 +39,17 @@ const getAllPublishedEvents = asyncHandler(async (req, res) => {
 const getSponsorshipEvents = asyncHandler(async (req, res) => {
   const events = await ngoEventService.getSponsorshipEvents();
   res.status(200).json({ success: true, availableSponsorEvent: events });
+});
+
+// Get single event by ID
+const getEventById = asyncHandler(async (req, res) => {
+  const eventId = req.params.eventId;
+  const event = await ngoEventService.getEventById(eventId);
+  
+  res.status(200).json({
+    success: true,
+    event
+  });
 });
 
 // Participate in an event
@@ -138,6 +149,7 @@ export const ngoEventController = {
   addEvent,
   getAllPublishedEvents,
   getSponsorshipEvents,
+  getEventById,
   participateInEvent,
   leaveEvent,
   getUserParticipatedEvents,

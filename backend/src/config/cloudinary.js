@@ -39,7 +39,11 @@ const storage = new CloudinaryStorage({
         folder: 'iVolunteer_posts',
         allowed_formats: ['jpg', 'jpeg', 'png', 'gif'],
         transformation: [{ width: 1000, crop: "limit" }], // Resize images to max width of 1000px
-        upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET // Upload preset for client-side uploads
+        public_id: (req, file) => {
+            // Generate a unique public ID for each file
+            return `post_${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+        }
+        // Removed upload_preset as it's not needed for server-side uploads
     }
 });
 

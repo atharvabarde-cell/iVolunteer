@@ -50,14 +50,20 @@ const createEvent = async (data, organizationId, organizationName) => {
   }
 };
 
-// Get all approved events (status = approved)
+
+// Get all published events with participants populated and NGO details
 const getAllPublishedEvents = async () => {
+  // First, check for any events that still have the legacy participants field as number
+  const eventsToMigrate = await Event.find({
+    status: "approved",
+    participants: { $type: "number" }
+  });
+  
+  // Get all approved events with populated participants and NGO details
   const events = await Event.find({ status: "approved" })
     .populate('participants', '_id name email')
+    .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
     .sort({ date: 1 });
-  
-  // Auto-migrate events with number participants field
-  const eventsToMigrate = events.filter(event => typeof event.participants === 'number');
   
   if (eventsToMigrate.length > 0) {
     console.log(`Auto-migrating ${eventsToMigrate.length} events with legacy participants field`);
@@ -74,9 +80,10 @@ const getAllPublishedEvents = async () => {
       }
     }
     
-    // Return fresh data after migration with populated participants
+    // Return fresh data after migration with populated participants and NGO details
     return await Event.find({ status: "approved" })
       .populate('participants', '_id name email')
+      .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
       .sort({ date: 1 });
   }
   
@@ -86,8 +93,12 @@ const getAllPublishedEvents = async () => {
 // Get approved events that require sponsorship (use a real field)
 const getSponsorshipEvents = async () => {
   return await Event.find({
-    sponsorshipAmount: { $gt: 0 },
-  }).sort({ date: 1 });
+    // status: "approved",
+    // sponsorshipRequired: true,
+    sponsorshipAmount: { $gt: 0 }
+  })
+  .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
+  .sort({ date: 1 });
 };
 
 const getEventsByOrganization = async (organizationId) => {
@@ -98,7 +109,22 @@ const getUpcomingEvents = async () => {
   return await Event.find({
     status: "approved",
     date: { $gt: new Date() },
-  }).sort({ date: 1 });
+  })
+    .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
+    .sort({ date: 1 });
+};
+
+// Get single event by ID
+const getEventById = async (eventId) => {
+  const event = await Event.findById(eventId)
+    .populate('participants', '_id name email')
+    .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize');
+    
+  if (!event) {
+    throw new Error("Event not found");
+  }
+  
+  return event;
 };
 
 // Update status (approve/reject)
@@ -186,15 +212,19 @@ const participateInEvent = async (eventId, userId) => {
     
     const user = await User.findById(userId);
     if (user) {
-      // No coins awarded for participation - just return the updated event
+      // No coins awarded for participation - just return the updated event with NGO details
       return {
-        event: await Event.findById(eventId).populate('participants', 'name email'),
+        event: await Event.findById(eventId)
+          .populate('participants', 'name email')
+          .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize'),
         pointsEarned: 0
       };
     }
 
     return {
-      event: await Event.findById(eventId).populate('participants', 'name email'),
+      event: await Event.findById(eventId)
+        .populate('participants', 'name email')
+        .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize'),
       pointsEarned: 0
     };
   } catch (error) {
@@ -251,7 +281,9 @@ const leaveEvent = async (eventId, userId) => {
     );
 
     return {
-      event: await Event.findById(eventId).populate('participants', 'name email')
+      event: await Event.findById(eventId)
+        .populate('participants', 'name email')
+        .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
     };
   } catch (error) {
     console.error('Error in leaveEvent:', error);
@@ -263,7 +295,9 @@ const leaveEvent = async (eventId, userId) => {
 const getUserParticipatedEvents = async (userId) => {
   return await Event.find({ 
     participants: userId 
-  }).sort({ date: -1 });
+  })
+  .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
+  .sort({ date: -1 });
 };
 
 export const ngoEventService = {
@@ -273,6 +307,7 @@ export const ngoEventService = {
   getAllPublishedEvents,
   
   getSponsorshipEvents,
+  getEventById,
   participateInEvent,
   leaveEvent,
   getUserParticipatedEvents,

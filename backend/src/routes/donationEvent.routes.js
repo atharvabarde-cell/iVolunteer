@@ -5,7 +5,7 @@ import {
 } from "../middlewares/auth.middleware.js";
 import {
   createEvent,
-  getAllEvents,
+  getAllEvents, getEventById,
   getPendingEvents,
   updateEventApproval,
 } from "../controllers/donationEvent.controller.js";
@@ -28,5 +28,6 @@ donationEventRouter.patch(
   authorizeRole("admin"),
   updateEventApproval
 );
+donationEventRouter.get("/:eventId", getEventById); // Get single donation event
 
 export default donationEventRouter;

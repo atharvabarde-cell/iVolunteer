@@ -20,6 +20,26 @@ export type EventData = {
   sponsorshipAmount: number;
   image?: { url: string; caption: string };
   eventStatus: string;
+  organization?: string; // Organization name
+  organizationId?: {
+    _id?: string;
+    name: string;
+    email: string;
+    organizationType?: string;
+    websiteUrl?: string;
+    yearEstablished?: number;
+    contactNumber?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+      country?: string;
+    };
+    ngoDescription?: string;
+    focusAreas?: string[];
+    organizationSize?: string;
+  };
 };
 
 export type NGOContextType = {
