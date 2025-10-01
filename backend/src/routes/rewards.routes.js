@@ -35,4 +35,16 @@ router.get(
     rewardsController.getRewardHistory
 );
 
+// Debug endpoint to check reward records
+router.get(
+    "/debug",
+    rewardsController.debugRewardRecords
+);
+
+// Migration endpoint to create participation reward records for existing participations
+router.post(
+    "/migrate-participation-rewards",
+    rewardsController.migrateParticipationRewards
+);
+
 export default router;

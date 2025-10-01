@@ -24,6 +24,27 @@ type FormValues = {
   password: string;
   confirmPassword?: string;
   role: string;
+  // NGO-specific fields
+  organizationType?: string;
+  websiteUrl?: string;
+  yearEstablished?: number;
+  contactNumber?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+  };
+  ngoDescription?: string;
+  focusAreas?: string[];
+  organizationSize?: string;
+  // Corporate-specific fields
+  companyType?: string;
+  industrySector?: string;
+  companySize?: string;
+  companyDescription?: string;
+  csrFocusAreas?: string[];
 };
 
 export default function AuthPage() {
@@ -38,7 +59,10 @@ export default function AuthPage() {
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>();
+  } = useForm<FormValues>({
+    mode: "onChange", // Enable real-time validation
+    reValidateMode: "onChange", // Re-validate on every change
+  });
 
   const roleOptions = [
     { value: "admin", label: "Admin", icon: Shield },
@@ -51,25 +75,52 @@ export default function AuthPage() {
 
   const onSubmit = async (data: FormValues) => {
     if (tab === "signup") {
-      const success = await signup(
-        data.name!,
-        data.email,
-        data.password,
-        data.role as any
-      );
+      // Prepare signup data including NGO-specific fields
+      const signupData = {
+        name: data.name!,
+        email: data.email,
+        password: data.password,
+        role: data.role as any,
+        ...(data.role === "ngo" && {
+          organizationType: data.organizationType,
+          websiteUrl: data.websiteUrl,
+          yearEstablished: data.yearEstablished ? Number(data.yearEstablished) : undefined,
+          contactNumber: data.contactNumber,
+          address: data.address,
+          ngoDescription: data.ngoDescription,
+          focusAreas: data.focusAreas || [],
+          organizationSize: data.organizationSize
+        }),
+        ...(data.role === "corporate" && {
+          companyType: data.companyType,
+          industrySector: data.industrySector,
+          companySize: data.companySize,
+          websiteUrl: data.websiteUrl,
+          yearEstablished: data.yearEstablished ? Number(data.yearEstablished) : undefined,
+          contactNumber: data.contactNumber,
+          address: data.address,
+          companyDescription: data.companyDescription,
+          csrFocusAreas: data.csrFocusAreas || []
+        })
+      };
+
+      const success = await signup(signupData);
       if (success) {
         toast.success("Account created successfully!");
+        toast.success(`Welcome to iVolunteer, ${data.name}! You've been awarded 50 coins as a welcome bonus!`);
         router.push("/");
       } else {
-        toast.error("Signup failed");
+        // Show descriptive error message based on context
+        toast.error(`Failed to create ${selectedRole === "ngo" ? "organization" : selectedRole === "corporate" ? "company" : "user"} account. Please check your information and try again.`);
       }
     } else {
       const success = await login(data.email, data.password, data.role as any);
       if (success) {
-        toast.success("Login successful!");
+        toast.success(`Welcome back! Successfully logged in as ${selectedRole === "ngo" ? "organization" : selectedRole === "corporate" ? "company" : selectedRole}.`);
         router.push("/");
       } else {
-        toast.info("Login failed. Please check your credentials.");
+        // Show descriptive error message
+        toast.error(`Login failed for ${selectedRole}. Please verify your credentials and try again.`);
       }
     }
   };
@@ -195,17 +246,17 @@ export default function AuthPage() {
               )}
             </div>
 
-            {/* Full Name Field for signup only */}
+            {/* Full Name / Organization Name / Company Name Field for signup only */}
             {tab === "signup" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Full Name <span className="text-red-500">*</span>
+                  {selectedRole === "ngo" ? "Organization Name" : selectedRole === "corporate" ? "Company Name" : "Full Name"} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Enter your full name"
+                    placeholder={selectedRole === "ngo" ? "Enter your organization name" : selectedRole === "corporate" ? "Enter your company name" : "Enter your full name"}
                     {...register("name", { required: "Name is required" })}
                     className={`w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
@@ -365,6 +416,856 @@ export default function AuthPage() {
                   </p>
                 )}
               </div>
+            )}
+
+            {/* NGO-specific fields for signup */}
+            {tab === "signup" && selectedRole === "ngo" && (
+              <>
+                {/* Organization Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Organization Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("organizationType", {
+                      required: selectedRole === "ngo" ? "Organization type is required" : false
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.organizationType
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white`}
+                  >
+                    <option value="">Select organization type</option>
+                    <option value="non-profit">Non-profit</option>
+                    <option value="charity">Charity</option>
+                    <option value="foundation">Foundation</option>
+                    <option value="trust">Trust</option>
+                    <option value="society">Society</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {errors.organizationType && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.organizationType.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Website or Social Media URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Website or Social Media URL <span className="text-gray-400">(optional)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://example.com or https://facebook.com/yourorg"
+                    {...register("websiteUrl", {
+                      pattern: {
+                        value: /^https?:\/\/.+/,
+                        message: "Please enter a valid URL starting with http:// or https://"
+                      }
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.websiteUrl
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                  />
+                  {errors.websiteUrl && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.websiteUrl.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Year Established */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Year Established <span className="text-gray-400">(optional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="2010"
+                      min="1800"
+                      max={new Date().getFullYear()}
+                      {...register("yearEstablished", {
+                        valueAsNumber: true,
+                        min: { 
+                          value: 1800, 
+                          message: "Year must be after 1800" 
+                        },
+                        max: { 
+                          value: new Date().getFullYear(), 
+                          message: "Year cannot be in the future" 
+                        },
+                        validate: {
+                          validYear: (value) => {
+                            if (!value) return true; // Optional field
+                            const currentYear = new Date().getFullYear();
+                            return (value >= 1800 && value <= currentYear) || 
+                              `Year must be between 1800 and ${currentYear}`;
+                          }
+                        }
+                      })}
+                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        ${errors.yearEstablished
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                    />
+                    {errors.yearEstablished && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.yearEstablished.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Contact Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Contact Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="9876543210 or 011-12345678"
+                      {...register("contactNumber", {
+                        required: selectedRole === "ngo" ? "Contact number is required" : false,
+                        validate: {
+                          validPhone: (value) => {
+                            if (!value && selectedRole !== "ngo") return true;
+                            if (!value) return "Contact number is required";
+                            
+                            // Remove all non-digits for validation
+                            const digitsOnly = value.replace(/\D/g, '');
+                            
+                            // Check for valid phone number patterns
+                            // Mobile: 10 digits starting with 6-9 (Indian mobile)
+                            // Landline: 8-11 digits (can start with area codes like 011, 022, etc.)
+                            // International: 7-15 digits
+                            
+                            if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+                              return "Contact number must be 7-15 digits long";
+                            }
+                            
+                            // Indian mobile number validation (10 digits starting with 6-9)
+                            if (digitsOnly.length === 10 && /^[6-9]/.test(digitsOnly)) {
+                              return true;
+                            }
+                            
+                            // Indian landline validation (area code + 7-8 digits)
+                            if (digitsOnly.length >= 10 && digitsOnly.length <= 11) {
+                              // Common Indian area codes
+                              const areaCodes = ['011', '022', '033', '040', '044', '080', '020', '079', '0484', '0471'];
+                              const hasValidAreaCode = areaCodes.some(code => digitsOnly.startsWith(code));
+                              if (hasValidAreaCode) {
+                                return true;
+                              }
+                            }
+                            
+                            // International or other valid formats (7-15 digits)
+                            if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
+                              return true;
+                            }
+                            
+                            return "Please enter a valid mobile number (10 digits) or landline number";
+                          }
+                        }
+                      })}
+                      onInput={(e) => {
+                        // Allow numbers, spaces, hyphens, parentheses, and plus sign
+                        const target = e.target as HTMLInputElement;
+                        target.value = target.value.replace(/[^0-9\s\-\(\)\+]/g, '').slice(0, 20);
+                      }}
+                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        ${errors.contactNumber
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                    />
+                    {errors.contactNumber && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.contactNumber.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Street address"
+                      {...register("address.street", {
+                        required: selectedRole === "ngo" ? "Street address is required" : false
+                      })}
+                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        ${errors.address?.street
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                    />
+                    {errors.address?.street && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.address.street.message}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="City"
+                        {...register("address.city", {
+                          required: selectedRole === "ngo" ? "City is required" : false
+                        })}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                          ${errors.address?.city
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                      />
+                      <input
+                        type="text"
+                        placeholder="State"
+                        {...register("address.state", {
+                          required: selectedRole === "ngo" ? "State is required" : false
+                        })}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                          ${errors.address?.state
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                      />
+                    </div>
+                    {(errors.address?.city || errors.address?.state) && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.address?.city?.message || errors.address?.state?.message}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="ZIP Code"
+                        {...register("address.zip", {
+                          required: selectedRole === "ngo" ? "ZIP code is required" : false,
+                          validate: {
+                            validZip: (value) => {
+                              if (!value && selectedRole !== "ngo") return true;
+                              if (!value) return "ZIP code is required";
+                              
+                              const country = watch("address.country")?.toLowerCase();
+                              
+                              // For India, ZIP code should be numeric and 6 digits
+                              if (country === "india" || !country) {
+                                if (!/^\d{6}$/.test(value)) {
+                                  return "Indian PIN code must be 6 digits";
+                                }
+                              }
+                              
+                              return true;
+                            }
+                          }
+                        })}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                          ${errors.address?.zip
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Country"
+                        defaultValue="India"
+                        {...register("address.country", {
+                          required: selectedRole === "ngo" ? "Country is required" : false
+                        })}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                          ${errors.address?.country
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                      />
+                    </div>
+                    {(errors.address?.zip || errors.address?.country) && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.address?.zip?.message || errors.address?.country?.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* NGO Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Organization Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    placeholder="Describe your organization's mission and activities..."
+                    rows={4}
+                    {...register("ngoDescription", {
+                      required: selectedRole === "ngo" ? "Organization description is required" : false,
+                      maxLength: { 
+                        value: 1000, 
+                        message: "Description cannot exceed 1000 characters" 
+                      },
+                      validate: {
+                        wordCount: (value) => {
+                          if (!value && selectedRole !== "ngo") return true;
+                          if (!value) return "Organization description is required";
+                          
+                          // Count words by splitting on whitespace and filtering empty strings
+                          const words = value.trim().split(/\s+/).filter(word => word.length > 0);
+                          
+                          if (words.length < 10) {
+                            return `Description must contain at least 10 words (currently ${words.length} words)`;
+                          }
+                          
+                          return true;
+                        }
+                      }
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.ngoDescription
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none`}
+                  />
+                  {/* Word count indicator */}
+                  <div className="flex justify-between items-center mt-1">
+                    {errors.ngoDescription && (
+                      <p className="text-red-500 text-sm">
+                        {errors.ngoDescription.message}
+                      </p>
+                    )}
+                    {watch("ngoDescription") && (
+                      <p className="text-sm text-gray-500 ml-auto">
+                        {(() => {
+                          const description = watch("ngoDescription");
+                          if (!description) return '0 words';
+                          const words = description.trim().split(/\s+/).filter(word => word.length > 0);
+                          return `${words.length} words`;
+                        })()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Focus Areas */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Focus Areas <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      "environment", "education", "health", "poverty", "children", "elderly",
+                      "animal-welfare", "disaster-relief", "community-development", "women-empowerment", "skill-development", "other"
+                    ].map((area) => (
+                      <label key={area} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          value={area}
+                          {...register("focusAreas", {
+                            required: selectedRole === "ngo" ? "Please select at least one focus area" : false
+                          })}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
+                          {area.replace('-', ' ')}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.focusAreas && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.focusAreas.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Organization Size */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Organization Size <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("organizationSize", {
+                      required: selectedRole === "ngo" ? "Organization size is required" : false
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.organizationSize
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white`}
+                  >
+                    <option value="">Select organization size</option>
+                    <option value="1-10">1-10 people</option>
+                    <option value="11-50">11-50 people</option>
+                    <option value="51-100">51-100 people</option>
+                    <option value="101-500">101-500 people</option>
+                    <option value="500+">500+ people</option>
+                  </select>
+                  {errors.organizationSize && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.organizationSize.message}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Corporate-specific fields for signup */}
+            {tab === "signup" && selectedRole === "corporate" && (
+              <>
+                {/* Company Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Company Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("companyType", {
+                      required: selectedRole === "corporate" ? "Company type is required" : false
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.companyType
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white`}
+                  >
+                    <option value="">Select company type</option>
+                    <option value="private-limited">Private Limited</option>
+                    <option value="public-limited">Public Limited</option>
+                    <option value="llp">LLP (Limited Liability Partnership)</option>
+                    <option value="partnership">Partnership</option>
+                    <option value="sole-proprietorship">Sole Proprietorship</option>
+                    <option value="mnc">MNC (Multinational Corporation)</option>
+                    <option value="startup">Startup</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {errors.companyType && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.companyType.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Industry Sector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Industry Sector <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("industrySector", {
+                      required: selectedRole === "corporate" ? "Industry sector is required" : false
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.industrySector
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white`}
+                  >
+                    <option value="">Select industry sector</option>
+                    <option value="it-software">IT/Software</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="finance">Finance</option>
+                    <option value="manufacturing">Manufacturing</option>
+                    <option value="retail">Retail</option>
+                    <option value="education">Education</option>
+                    <option value="consulting">Consulting</option>
+                    <option value="real-estate">Real Estate</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {errors.industrySector && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.industrySector.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Company Size */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Company Size <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("companySize", {
+                      required: selectedRole === "corporate" ? "Company size is required" : false
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.companySize
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white`}
+                  >
+                    <option value="">Select company size</option>
+                    <option value="1-10">1-10 employees</option>
+                    <option value="11-50">11-50 employees</option>
+                    <option value="51-200">51-200 employees</option>
+                    <option value="201-1000">201-1000 employees</option>
+                    <option value="1000+">1000+ employees</option>
+                  </select>
+                  {errors.companySize && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.companySize.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Website URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Company Website URL <span className="text-gray-400">(optional)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://company.com or https://linkedin.com/company/yourcompany"
+                    {...register("websiteUrl", {
+                      pattern: {
+                        value: /^https?:\/\/.+/,
+                        message: "Please enter a valid URL starting with http:// or https://"
+                      }
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.websiteUrl
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                  />
+                  {errors.websiteUrl && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.websiteUrl.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Year Established */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Year Established <span className="text-gray-400">(optional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="2010"
+                      min="1800"
+                      max={new Date().getFullYear()}
+                      {...register("yearEstablished", {
+                        valueAsNumber: true,
+                        min: { 
+                          value: 1800, 
+                          message: "Year must be after 1800" 
+                        },
+                        max: { 
+                          value: new Date().getFullYear(), 
+                          message: "Year cannot be in the future" 
+                        },
+                        validate: {
+                          validYear: (value) => {
+                            if (!value) return true; // Optional field
+                            const currentYear = new Date().getFullYear();
+                            return (value >= 1800 && value <= currentYear) || 
+                              `Year must be between 1800 and ${currentYear}`;
+                          }
+                        }
+                      })}
+                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        ${errors.yearEstablished
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                    />
+                    {errors.yearEstablished && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.yearEstablished.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Contact Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Contact Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="9876543210 or 011-12345678"
+                      {...register("contactNumber", {
+                        required: selectedRole === "corporate" ? "Contact number is required" : false,
+                        validate: {
+                          validPhone: (value) => {
+                            if (!value && selectedRole !== "corporate") return true;
+                            if (!value) return "Contact number is required";
+                            
+                            // Remove all non-digits for validation
+                            const digitsOnly = value.replace(/\D/g, '');
+                            
+                            // Check for valid phone number patterns
+                            if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+                              return "Contact number must be 7-15 digits long";
+                            }
+                            
+                            // Indian mobile number validation (10 digits starting with 6-9)
+                            if (digitsOnly.length === 10 && /^[6-9]/.test(digitsOnly)) {
+                              return true;
+                            }
+                            
+                            // Indian landline validation (area code + 7-8 digits)
+                            if (digitsOnly.length >= 10 && digitsOnly.length <= 11) {
+                              const areaCodes = ['011', '022', '033', '040', '044', '080', '020', '079', '0484', '0471'];
+                              const hasValidAreaCode = areaCodes.some(code => digitsOnly.startsWith(code));
+                              if (hasValidAreaCode) {
+                                return true;
+                              }
+                            }
+                            
+                            // International or other valid formats (7-15 digits)
+                            if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
+                              return true;
+                            }
+                            
+                            return "Please enter a valid mobile number (10 digits) or landline number";
+                          }
+                        }
+                      })}
+                      onInput={(e) => {
+                        // Allow numbers, spaces, hyphens, parentheses, and plus sign
+                        const target = e.target as HTMLInputElement;
+                        target.value = target.value.replace(/[^0-9\s\-\(\)\+]/g, '').slice(0, 20);
+                      }}
+                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        ${errors.contactNumber
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                    />
+                    {errors.contactNumber && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.contactNumber.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Company Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Company Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Street address"
+                      {...register("address.street", {
+                        required: selectedRole === "corporate" ? "Street address is required" : false
+                      })}
+                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        ${errors.address?.street
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                    />
+                    {errors.address?.street && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.address.street.message}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="City"
+                        {...register("address.city", {
+                          required: selectedRole === "corporate" ? "City is required" : false
+                        })}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                          ${errors.address?.city
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                      />
+                      <input
+                        type="text"
+                        placeholder="State"
+                        {...register("address.state", {
+                          required: selectedRole === "corporate" ? "State is required" : false
+                        })}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                          ${errors.address?.state
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                      />
+                    </div>
+                    {(errors.address?.city || errors.address?.state) && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.address?.city?.message || errors.address?.state?.message}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="ZIP Code"
+                        {...register("address.zip", {
+                          required: selectedRole === "corporate" ? "ZIP code is required" : false,
+                          validate: {
+                            validZip: (value) => {
+                              if (!value && selectedRole !== "corporate") return true;
+                              if (!value) return "ZIP code is required";
+                              
+                              const country = watch("address.country")?.toLowerCase();
+                              
+                              // For India, ZIP code should be numeric and 6 digits
+                              if (country === "india" || !country) {
+                                if (!/^\d{6}$/.test(value)) {
+                                  return "Indian PIN code must be 6 digits";
+                                }
+                              }
+                              
+                              return true;
+                            }
+                          }
+                        })}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                          ${errors.address?.zip
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Country"
+                        defaultValue="India"
+                        {...register("address.country", {
+                          required: selectedRole === "corporate" ? "Country is required" : false
+                        })}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                          ${errors.address?.country
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                      />
+                    </div>
+                    {(errors.address?.zip || errors.address?.country) && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.address?.zip?.message || errors.address?.country?.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Company Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Company Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    placeholder="Describe your company's business activities and services..."
+                    rows={4}
+                    {...register("companyDescription", {
+                      required: selectedRole === "corporate" ? "Company description is required" : false,
+                      maxLength: { 
+                        value: 1000, 
+                        message: "Description cannot exceed 1000 characters" 
+                      },
+                      validate: {
+                        wordCount: (value) => {
+                          if (!value && selectedRole !== "corporate") return true;
+                          if (!value) return "Company description is required";
+                          
+                          // Count words by splitting on whitespace and filtering empty strings
+                          const words = value.trim().split(/\s+/).filter(word => word.length > 0);
+                          
+                          if (words.length < 10) {
+                            return `Description must contain at least 10 words (currently ${words.length} words)`;
+                          }
+                          
+                          return true;
+                        }
+                      }
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.companyDescription
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none`}
+                  />
+                  {/* Word count indicator */}
+                  <div className="flex justify-between items-center mt-1">
+                    {errors.companyDescription && (
+                      <p className="text-red-500 text-sm">
+                        {errors.companyDescription.message}
+                      </p>
+                    )}
+                    {watch("companyDescription") && (
+                      <p className="text-sm text-gray-500 ml-auto">
+                        {(() => {
+                          const description = watch("companyDescription");
+                          if (!description) return '0 words';
+                          const words = description.trim().split(/\s+/).filter(word => word.length > 0);
+                          return `${words.length} words`;
+                        })()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* CSR Focus Areas */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    CSR Focus Areas <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      "employee-volunteering", "community-development", "education-skill-development", 
+                      "environment-sustainability", "healthcare", "disaster-relief", 
+                      "women-empowerment", "rural-development", "other"
+                    ].map((area) => (
+                      <label key={area} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          value={area}
+                          {...register("csrFocusAreas", {
+                            required: selectedRole === "corporate" ? "Please select at least one CSR focus area" : false
+                          })}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
+                          {area.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.csrFocusAreas && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.csrFocusAreas.message}
+                    </p>
+                  )}
+                </div>
+              </>
             )}
 
             {/* Forgot Password (Login only) */}

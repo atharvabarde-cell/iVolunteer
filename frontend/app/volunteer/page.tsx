@@ -1,5 +1,8 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 import { useNGO } from "@/contexts/ngo-context";
 import {
   Calendar,
@@ -12,6 +15,8 @@ import {
 import { Header } from "@/components/header";
 
 const AvailableEventsPage: React.FC = () => {
+  const router = useRouter();
+  const { user } = useAuth();
   const { events, fetchAvailableEvents, loading, error, participateInEvent } =
     useNGO();
   const [participating, setParticipating] = useState<{
@@ -42,6 +47,12 @@ const AvailableEventsPage: React.FC = () => {
     }
   };
 
+  const handleCardClick = (eventId: string) => {
+    if (eventId) {
+      router.push(`/volunteer/${eventId}`);
+    }
+  };
+
   const getProgressPercentage = (event: any) => {
     const currentParticipants = Array.isArray(event.participants)
       ? event.participants.length
@@ -64,12 +75,15 @@ const AvailableEventsPage: React.FC = () => {
   };
 
   const isUserParticipating = (event: any) => {
-    // This would typically check against current user ID from context
-    // For now, using the local state
+    // Check if current user ID is in the event participants array
+    const currentUserId = user?._id || "";
     return (
       participated[event._id] ||
-      (Array.isArray(event.participants) && event.participants.length > 0)
-    ); // Simplified check
+      (Array.isArray(event.participants) && 
+       event.participants.some((participant: any) => 
+         participant._id === currentUserId || participant === currentUserId
+       ))
+    );
   };
 
   if (loading) {
@@ -128,9 +142,17 @@ const AvailableEventsPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Available Events
-            </h1>
+            <div className="flex items-center justify-center mb-4">
+              <h1 className="text-4xl font-bold text-gray-900">
+                Available Events
+              </h1>
+              <button
+                onClick={() => router.push("/volunteer/my-events")}
+                className="ml-6 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+              >
+                My Events
+              </button>
+            </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Discover meaningful opportunities to support our community through
               various events and activities.
@@ -151,7 +173,8 @@ const AvailableEventsPage: React.FC = () => {
               return (
                 <div
                   key={event._id}
-                  className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 border overflow-hidden ${
+                  onClick={() => event._id && handleCardClick(event._id)}
+                  className={`bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border overflow-hidden cursor-pointer transform hover:scale-[1.02] ${
                     eventFull ? "border-red-200" : "border-gray-100"
                   } ${userParticipating ? "ring-2 ring-green-200" : ""}`}
                 >
@@ -166,13 +189,16 @@ const AvailableEventsPage: React.FC = () => {
                   )}
 
                   {/* Event Header */}
-                  <div className="p-6 border-b border-gray-100">
+                  <div className="p-6 border-b border-gray-100 relative">
                     <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
                       {event.title}
                     </h2>
                     <p className="text-gray-600 text-sm line-clamp-3">
                       {event.description}
                     </p>
+                    <div className="absolute top-4 right-4 text-xs text-blue-600 font-medium">
+                      Click to view details
+                    </div>
                   </div>
 
                   {/* Event Details */}
@@ -271,9 +297,10 @@ const AvailableEventsPage: React.FC = () => {
                       </button>
                     ) : (
                       <button
-                        onClick={() =>
-                          event._id && handleParticipate(event._id)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          event._id && handleParticipate(event._id);
+                        }}
                         disabled={!event._id || participating[event._id]}
                         className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
                       >

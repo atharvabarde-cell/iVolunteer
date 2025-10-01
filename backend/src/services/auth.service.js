@@ -1,11 +1,14 @@
 import { User } from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Session } from "../models/Session.js";
+import { RegistrationReward } from "../models/RegistrationReward.js";
 import {
   hashPassword,
   comparePassword,
   hashToken,
 } from "../utils/password.utils.js";
+import mongoose from "mongoose";
+import { logger } from "../utils/logger.js";
 
 const register = async (data) => {
   const email = data.email.toLowerCase().trim();
@@ -17,15 +20,91 @@ const register = async (data) => {
 
   const hashedPassword = await hashPassword(data.password);
 
-  const user = new User({
-    email,
-    name: data.name,
-    password: hashedPassword,
-    role: data.role,
-  });
+  // Start a transaction to ensure both user creation and coin award happen together
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  await user.save();
-  return user;
+  try {
+    // Create the user with initial 50 coins and additional fields for NGOs
+    const userData = {
+      email,
+      name: data.name,
+      password: hashedPassword,
+      role: data.role,
+      coins: 50, // Give 50 coins for registration
+    };
+
+    // Add NGO-specific fields if role is 'ngo'
+    if (data.role === 'ngo') {
+      userData.organizationType = data.organizationType;
+      userData.websiteUrl = data.websiteUrl;
+      userData.yearEstablished = data.yearEstablished;
+      userData.contactNumber = data.contactNumber;
+      userData.address = {
+        street: data.address?.street,
+        city: data.address?.city,
+        state: data.address?.state,
+        zip: data.address?.zip,
+        country: data.address?.country || 'India'
+      };
+      userData.ngoDescription = data.ngoDescription;
+      userData.focusAreas = data.focusAreas || [];
+      userData.organizationSize = data.organizationSize;
+    }
+
+    // Add Corporate-specific fields if role is 'corporate'
+    if (data.role === 'corporate') {
+      userData.companyType = data.companyType;
+      userData.industrySector = data.industrySector;
+      userData.companySize = data.companySize;
+      userData.websiteUrl = data.websiteUrl;
+      userData.yearEstablished = data.yearEstablished;
+      userData.contactNumber = data.contactNumber;
+      userData.address = {
+        street: data.address?.street,
+        city: data.address?.city,
+        state: data.address?.state,
+        zip: data.address?.zip,
+        country: data.address?.country || 'India'
+      };
+      userData.companyDescription = data.companyDescription;
+      userData.csrFocusAreas = data.csrFocusAreas || [];
+    }
+
+    const user = new User(userData);
+
+    await user.save({ session });
+
+    // Create registration reward record for tracking
+    const registrationReward = new RegistrationReward({
+      userId: user._id,
+      coins: 50,
+      type: "registration_bonus"
+    });
+
+    await registrationReward.save({ session });
+
+    await session.commitTransaction();
+
+    logger.info("New user registered with welcome bonus", {
+      userId: user._id,
+      email: user.email,
+      coins: 50
+    });
+
+    return user;
+
+  } catch (error) {
+    await session.abortTransaction();
+    logger.error("Error during user registration", {
+      error: error.message,
+      email,
+      stack: error.stack
+    });
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
 const login = async (data) => {
@@ -47,6 +126,7 @@ const login = async (data) => {
     email: user.email,
     name: user.name,
     role: user.role,
+    coins: user.coins,
   };
 };
 

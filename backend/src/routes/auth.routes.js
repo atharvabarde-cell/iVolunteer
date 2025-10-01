@@ -1,13 +1,15 @@
 import express, {Router} from "express";
 import { authController } from "../controllers/auth.controller.js";
 import { authentication } from "../middlewares/auth.middleware.js";
-import {refreshAccessTokenController} from "../controllers/session.controller.js"
+import { refreshAccessTokenController } from "../controllers/session.controller.js";
+import { validate } from "../middlewares/validate.middleware.js";
+import { authValidator } from "../validators/auth.validators.js";
 
 const router = Router()
 
-router.post("/register", authController.register);
+router.post("/register", validate(authValidator.registerSchema), authController.register);
 
-router.post("/login", authController.login);
+router.post("/login", validate(authValidator.loginSchema), authController.login);
 
 router.post("/logout", authentication, authController.logout);
 

@@ -41,6 +41,68 @@ const getSponsorshipEvents = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, availableSponsorEvent: events });
 });
 
+// Participate in an event
+const participateInEvent = asyncHandler(async (req, res) => {
+  const eventId = req.params.eventId;
+  const userId = req.user._id;
+
+  const result = await ngoEventService.participateInEvent(eventId, userId);
+  
+  res.status(200).json({
+    success: true,
+    message: "Successfully joined the event!",
+    event: result.event,
+    pointsEarned: result.pointsEarned
+  });
+});
+
+// Leave an event
+const leaveEvent = asyncHandler(async (req, res) => {
+  const eventId = req.params.eventId;
+  const userId = req.user._id;
+
+  const result = await ngoEventService.leaveEvent(eventId, userId);
+  
+  res.status(200).json({
+    success: true,
+    message: "Successfully left the event!",
+    event: result.event
+  });
+});
+
+// Get user's participated events
+const getUserParticipatedEvents = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const events = await ngoEventService.getUserParticipatedEvents(userId);
+  
+  res.status(200).json({
+    success: true,
+    events
+  });
+});
+
+// Migration endpoint (for admin use)
+const migrateParticipantsData = asyncHandler(async (req, res) => {
+  // Import the migration utility
+  const { migrateParticipantsField } = await import("../utils/migrateParticipants.js");
+  
+  const result = await migrateParticipantsField();
+  
+  if (result.success) {
+    res.status(200).json({
+      success: true,
+      message: `Successfully migrated ${result.migratedCount} events`,
+      migratedCount: result.migratedCount
+    });
+  } else {
+    res.status(500).json({
+      success: false,
+      message: "Migration failed",
+      error: result.error
+    });
+  }
+});
+
 const getEventsByOrganization = asyncHandler(async (req, res) => {
   const organizationId = req.user.id;
   const events = await ngoEventService.getEventsByOrganization(organizationId);
@@ -76,6 +138,10 @@ export const ngoEventController = {
   addEvent,
   getAllPublishedEvents,
   getSponsorshipEvents,
+  participateInEvent,
+  leaveEvent,
+  getUserParticipatedEvents,
+  migrateParticipantsData,
   getEventsByOrganization,
   updateEventStatus,
   getPendingEvents,
