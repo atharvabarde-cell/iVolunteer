@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 import api from '@/lib/api';
+import { usePoints } from './points-context';
+import { toast } from 'react-toastify';
 
 interface ApiError {
     message: string;
@@ -83,8 +85,11 @@ export function PostProvider({ children }: PostProviderProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+     const { earnPoints } = usePoints(); 
+
     const getPosts = async (page = 1) => {
         try {
+            
             setLoading(true);
             const response = await api.get<{
                 posts: Post[];
@@ -108,6 +113,10 @@ export function PostProvider({ children }: PostProviderProps) {
             setLoading(true);
             const response = await api.post<Post>('/v1/posts', formData);
             setPosts(prevPosts => [response.data, ...prevPosts]);
+
+             await earnPoints("addPost", response.data._id);
+             toast.success("5+ points");
+
             return response.data;
         } catch (err) {
             const message = handleError(err);

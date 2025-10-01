@@ -2,7 +2,6 @@ import { Event } from "../models/Event.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
 
-
 const createEvent = async (data, organizationId, organizationName) => {
   let {
     title,
@@ -21,7 +20,6 @@ const createEvent = async (data, organizationId, organizationName) => {
     images = [],
   } = data;
 
-
   const event = new Event({
     title,
     description,
@@ -39,12 +37,16 @@ const createEvent = async (data, organizationId, organizationName) => {
     sponsorshipRequired,
     sponsorshipAmount,
     images,
+    status: "pending"
   });
 
   try {
     return await event.save();
   } catch (error) {
-    throw new ApiError(error.status || 500, error.message || "Failed to create event");
+    throw new ApiError(
+      error.status || 500,
+      error.message || "Failed to create event"
+    );
   }
 };
 
@@ -99,13 +101,15 @@ const getSponsorshipEvents = async () => {
   .sort({ date: 1 });
 };
 
-
 const getEventsByOrganization = async (organizationId) => {
   return await Event.find({ organizationId }).sort({ date: -1 });
 };
 
 const getUpcomingEvents = async () => {
-  return await Event.find({ status: "approved", date: { $gt: new Date() } })
+  return await Event.find({
+    status: "approved",
+    date: { $gt: new Date() },
+  })
     .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
     .sort({ date: 1 });
 };
@@ -121,6 +125,30 @@ const getEventById = async (eventId) => {
   }
   
   return event;
+};
+
+// Update status (approve/reject)
+const updateEventStatus = async (eventId, status) => {
+  if (!["approved", "rejected"].includes(status)) {
+    throw new ApiError(400, "Invalid status value");
+  }
+
+  const event = await Event.findByIdAndUpdate(
+    eventId,
+    { status },
+    { new: true }
+  );
+
+  if (!event) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  return event;
+};
+
+// Get all pending events (for admin)
+const getPendingEvents = async () => {
+  return await Event.find({ status: "pending" }).sort({ createdAt: -1 });
 };
 
 // Participate in an event
@@ -277,9 +305,12 @@ export const ngoEventService = {
   getEventsByOrganization,
   getUpcomingEvents,
   getAllPublishedEvents,
+  
   getSponsorshipEvents,
   getEventById,
   participateInEvent,
   leaveEvent,
-  getUserParticipatedEvents
+  getUserParticipatedEvents,
+  getPendingEvents,
+  updateEventStatus,
 };

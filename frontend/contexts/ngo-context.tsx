@@ -65,16 +65,18 @@ export const NGOProvider = ({ children }: { children: ReactNode }) => {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
   const currentUserId = user?._id || "";
 
+  // --- Create Event ---
   const createEvent = async (eventData: EventData) => {
     try {
       setLoading(true);
       setError(null);
       if (!token) throw new Error("No auth token found");
 
-      const res = await api.post("/v1/event/add-event", eventData, {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
+      const res = await api.post<{ success: boolean; event: EventData }>(
+        "/v1/event/add-event",
+        eventData,
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      );
 
       setEvents((prev) => [...prev, (res.data as any).event]);
       toast.success("Event created successfully!");
@@ -87,15 +89,16 @@ export const NGOProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // --- Fetch All Published Events ---
   const fetchAvailableEvents = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const res = await api.get("/v1/event/all-event", {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
+      const res = await api.get<{ success: boolean; events: EventData[] }>(
+        "/v1/event/all-event",
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      );
 
       setEvents((res.data as any).events || []);
     } catch (err: any) {
@@ -105,11 +108,12 @@ export const NGOProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // --- Participate in Event ---
   const participateInEvent = async (eventId: string) => {
     try {
       if (!token) throw new Error("No auth token found");
 
-      const res = await api.post(
+      const res = await api.post<{ success: boolean; message: string }>(
         `/v1/event/participate/${eventId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
@@ -127,8 +131,7 @@ export const NGOProvider = ({ children }: { children: ReactNode }) => {
         )
       );
 
-      const responseData = res.data as any;
-      toast.success("Participation successful!");
+      toast.success(res.data.message || "Participation successful!");
       return true;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "Participation failed";
