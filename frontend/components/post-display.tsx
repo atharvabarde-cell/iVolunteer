@@ -73,7 +73,23 @@ const categoryConfig = {
     'Other': { icon: '📝', bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' }
 };
 
-export function PostDisplay({ post }: PostDisplayProps) {
+// Accept optional searchText prop for highlighting
+interface PostDisplayWithSearchProps extends PostDisplayProps {
+    searchText?: string;
+}
+
+export function PostDisplay({ post, searchText }: PostDisplayWithSearchProps) {
+    // Highlight helper
+    function highlightText(text: string, highlight: string) {
+        if (!highlight || highlight.trim() === '') return text;
+        const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const parts = text.split(regex);
+        return parts.map((part, i) =>
+            regex.test(part)
+                ? <mark key={i} className="bg-yellow-200 text-yellow-900 px-1 rounded">{part}</mark>
+                : part
+        );
+    }
     const [comment, setComment] = useState('');
     const [isCommenting, setIsCommenting] = useState(false);
     const [showReactions, setShowReactions] = useState(false);
@@ -250,12 +266,12 @@ export function PostDisplay({ post }: PostDisplayProps) {
 
                 {/* Title */}
                 <h2 className="text-2xl font-bold text-gray-900 leading-tight">
-                    {post.title}
+                    {highlightText(post.title, searchText || '')}
                 </h2>
 
                 {/* Description */}
                 <p className="text-gray-700 leading-relaxed">
-                    {post.description}
+                    {highlightText(post.description, searchText || '')}
                 </p>
             </div>
 
