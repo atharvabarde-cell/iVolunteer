@@ -14,20 +14,20 @@ import {
 import { useNGO } from "@/contexts/ngo-context"; // import your context
 
 const Ngoanalytics = () => {
-  const { events, fetchAvailableEvents, loading } = useNGO();
+  const { organizationEvents, fetchOrganizationEvents, loading } = useNGO();
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchAvailableEvents(); // fetch events on mount
+    fetchOrganizationEvents(); // fetch organization events on mount
   }, []);
 
   useEffect(() => {
-    // Compute stats dynamically from events
-    const activeEvents = events.filter(e => new Date(e.date) > new Date()).length;
-    const upcomingEvents = events.filter(e => new Date(e.date) > new Date()).length; // same as active for demo
-    const totalVolunteers = events.reduce((acc, e) => acc + (e.participants?.length || 0), 0);
-    const fundsRaised = events.reduce((acc, e) => acc + (e.sponsorshipAmount || 0), 0);
-    const communitiesImpacted = new Set(events.map(e => e.location)).size;
+    // Compute stats dynamically from organization events
+    const activeEvents = organizationEvents.filter(e => new Date(e.date) > new Date()).length;
+    const upcomingEvents = organizationEvents.filter(e => new Date(e.date) > new Date()).length; // same as active for demo
+    const totalVolunteers = organizationEvents.reduce((acc, e) => acc + (e.participants?.length || 0), 0);
+    const fundsRaised = organizationEvents.reduce((acc, e) => acc + (e.sponsorshipAmount || 0), 0);
+    const communitiesImpacted = new Set(organizationEvents.map(e => e.location)).size;
 
     setStats([
       {
@@ -76,7 +76,7 @@ const Ngoanalytics = () => {
         trend: { value: 8, isPositive: true }
       },
     ]);
-  }, [events]);
+  }, [organizationEvents]);
 
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => setIsVisible(true), []);

@@ -102,7 +102,15 @@ const getSponsorshipEvents = async () => {
 };
 
 const getEventsByOrganization = async (organizationId) => {
-  return await Event.find({ organizationId }).sort({ date: -1 });
+  console.log(`[SERVICE] Searching for events with organizationId: ${organizationId}`);
+  
+  const events = await Event.find({ organizationId })
+    .populate('organizationId', 'name email organizationType')
+    .populate('participants', '_id name email')
+    .sort({ date: -1 });
+    
+  console.log(`[SERVICE] Query result: ${events.length} events found`);
+  return events;
 };
 
 const getUpcomingEvents = async () => {
