@@ -44,10 +44,12 @@ export type EventData = {
 
 export type NGOContextType = {
   events: EventData[];
+  organizationEvents: EventData[];
   loading: boolean;
   error: string | null;
   createEvent: (data: EventData) => Promise<void>;
   fetchAvailableEvents: () => Promise<void>;
+  fetchOrganizationEvents: () => Promise<void>;
   participateInEvent: (eventId: string) => Promise<boolean>;
   leaveEvent: (eventId: string) => Promise<boolean>;
   getUserParticipatedEvents: () => Promise<void>;
@@ -59,6 +61,7 @@ const NGOContext = createContext<NGOContextType | undefined>(undefined);
 export const NGOProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [events, setEvents] = useState<EventData[]>([]);
+  const [organizationEvents, setOrganizationEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +106,35 @@ export const NGOProvider = ({ children }: { children: ReactNode }) => {
       setEvents((res.data as any).events || []);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to fetch events");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Fetch Organization Events ---
+  const fetchOrganizationEvents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      if (!token) throw new Error("No auth token found");
+
+      // Add cache-busting parameter to prevent 304 responses
+      const timestamp = new Date().getTime();
+      const res = await api.get<{ success: boolean; events: EventData[] }>(
+        `/v1/event/organization?_t=${timestamp}`,
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }, 
+          withCredentials: true 
+        }
+      );
+
+      setOrganizationEvents((res.data as any).events || []);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to fetch organization events");
     } finally {
       setLoading(false);
     }
@@ -192,10 +224,12 @@ export const NGOProvider = ({ children }: { children: ReactNode }) => {
     <NGOContext.Provider
       value={{ 
         events, 
+        organizationEvents,
         loading, 
         error, 
         createEvent, 
-        fetchAvailableEvents, 
+        fetchAvailableEvents,
+        fetchOrganizationEvents,
         participateInEvent,
         leaveEvent,
         getUserParticipatedEvents

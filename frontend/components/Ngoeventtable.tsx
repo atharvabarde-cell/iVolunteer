@@ -11,8 +11,10 @@ interface EventItem {
   location: string;
   maxParticipants: number;
   filled: number;
-  status: "Open" | "Ongoing" | "Full";
+  status: "Open" | "Ongoing" | "Full" | "pending" | "approved" | "rejected";
   progress: number;
+  eventStatus?: string;
+  participants?: any[];
 }
 
 const Ngoeventtable = () => {
@@ -27,20 +29,53 @@ const Ngoeventtable = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("auth-token");
-      const res = await api.get<{ success: boolean; events: EventItem[] }>("/v1/event/organization", {
-        headers: { Authorization: `Bearer ${token}` },
+      if (!token) {
+        console.error("No auth token found");
+        return;
+      }
+      
+      // Add cache-busting parameter to prevent 304 responses
+      const timestamp = new Date().getTime();
+      const res = await api.get<{ success: boolean; events: any[] }>(`/v1/event/organization?_t=${timestamp}`, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
       });
+      
+      console.log("Fetched events:", res.data); // Debug log
+      
       // Map backend fields to frontend display fields
-      const mappedEvents = res.data.events.map((e) => ({
-        _id: e._id,
-        title: e.title,
-        date: e.date,
-        location: e.location,
-        filled: e.filled || 0,
-        maxParticipants: e.maxParticipants,
-        status: e.status,
-        progress: e.filled && e.maxParticipants ? Math.round((e.filled / e.maxParticipants) * 100) : 0,
-      }));
+      const mappedEvents = res.data.events.map((e) => {
+        const participantCount = e.participants?.length || 0;
+        const progress = e.maxParticipants ? Math.round((participantCount / e.maxParticipants) * 100) : 0;
+        
+        // Determine display status based on event status and capacity
+        let displayStatus: "Open" | "Ongoing" | "Full" | "pending" | "approved" | "rejected" = e.status;
+        if (e.status === "approved") {
+          if (participantCount >= e.maxParticipants) {
+            displayStatus = "Full";
+          } else if (new Date(e.date) < new Date()) {
+            displayStatus = "Ongoing";
+          } else {
+            displayStatus = "Open";
+          }
+        }
+        
+        return {
+          _id: e._id,
+          title: e.title,
+          date: new Date(e.date).toLocaleDateString(),
+          location: e.location,
+          filled: participantCount,
+          maxParticipants: e.maxParticipants,
+          status: displayStatus,
+          progress: progress,
+          eventStatus: e.eventStatus,
+          participants: e.participants
+        };
+      });
       setEvents(mappedEvents);
     } catch (err) {
       console.error("Failed to fetch events", err);
@@ -115,7 +150,7 @@ const Ngoeventtable = () => {
           />
         </div>
         <div className="flex gap-2">
-          {["all", "open", "ongoing", "full"].map((status) => (
+          {["all", "open", "pending", "approved", "rejected"].map((status) => (
             <button
               key={status}
               className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 transition ${

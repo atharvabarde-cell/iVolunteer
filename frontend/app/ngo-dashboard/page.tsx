@@ -27,7 +27,7 @@ import { useEvents } from "@/contexts/events-context"
 
 export default function NGODashboard() {
   const { user } = useAuth()
-  const { createEvent, getEventsByOrganization, getApplicationsByEvent } = useEvents()
+  const { createEvent, organizationEvents, getApplicationsByEvent, fetchOrganizationEvents } = useEvents()
   const router = useRouter()
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -45,14 +45,16 @@ export default function NGODashboard() {
   useEffect(() => {
     if (!user || user.role !== "ngo") {
       router.push("/auth")
+    } else {
+      fetchOrganizationEvents()
     }
-  }, [user, router])
+  }, [user, router, fetchOrganizationEvents])
 
   if (!user || user.role !== "ngo") {
     return null
   }
 
-  const myEvents = getEventsByOrganization(user.id)
+  const myEvents = organizationEvents
 
   const handleCreateEvent = (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,6 +70,9 @@ export default function NGODashboard() {
       coins: Number.parseInt(formData.coins),
       description: formData.description,
       category: formData.category,
+    }).then(() => {
+      // Refresh organization events after creating
+      fetchOrganizationEvents()
     })
 
     setFormData({

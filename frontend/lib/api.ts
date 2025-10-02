@@ -4,6 +4,11 @@ import axios from "axios";
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
   withCredentials: true, // if you're using cookies / auth
+  headers: {
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  }
 });
 
 // Flag to prevent multiple refresh attempts
@@ -30,9 +35,18 @@ api.interceptors.request.use(
     if (token) {
       config.headers = {
         ...config.headers,
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       };
     }
+    
+    // Add timestamp parameter to prevent caching for GET requests
+    if (config.method === 'get') {
+      const separator = config.url?.includes('?') ? '&' : '?';
+      config.url = `${config.url}${separator}_t=${Date.now()}`;
+    }
+    
     return config;
   },
   (error) => {

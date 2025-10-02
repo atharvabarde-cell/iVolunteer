@@ -115,12 +115,43 @@ const migrateParticipantsData = asyncHandler(async (req, res) => {
 });
 
 const getEventsByOrganization = asyncHandler(async (req, res) => {
-  const organizationId = req.user.id;
+  const organizationId = req.user._id; // Use _id instead of id
+  console.log(`[DEBUG] Fetching events for organization: ${organizationId}`);
+  console.log(`[DEBUG] User object keys:`, Object.keys(req.user));
+  console.log(`[DEBUG] User role:`, req.user.role);
+  console.log(`[DEBUG] User name:`, req.user.name);
+  console.log(`[DEBUG] Full user object:`, JSON.stringify(req.user, null, 2));
+  
   const events = await ngoEventService.getEventsByOrganization(organizationId);
+  console.log(`[DEBUG] Found ${events.length} events for organization ${organizationId}`);
+
+  // Also check if there are any events with different organizationId formats
+  const allEvents = await Event.find({});
+  console.log(`[DEBUG] Total events in database: ${allEvents.length}`);
+  const eventsWithOrgId = allEvents.filter(event => 
+    event.organizationId && event.organizationId.toString() === organizationId.toString()
+  );
+  console.log(`[DEBUG] Events matching organizationId: ${eventsWithOrgId.length}`);
+
+  // Set cache control headers to prevent caching issues
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
 
   res.status(200).json({
     success: true,
     events,
+    timestamp: new Date().toISOString(), // Add timestamp to ensure uniqueness
+    count: events.length,
+    debug: {
+      organizationId: organizationId.toString(),
+      totalEventsInDb: allEvents.length,
+      eventsMatchingOrgId: eventsWithOrgId.length,
+      userRole: req.user.role,
+      userName: req.user.name
+    }
   });
 });
 
