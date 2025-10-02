@@ -115,14 +115,19 @@ const migrateParticipantsData = asyncHandler(async (req, res) => {
 });
 
 const getEventsByOrganization = asyncHandler(async (req, res) => {
-  const organizationId = req.user.id;
-  const events = await ngoEventService.getEventsByOrganization(organizationId);
+  try {
+    console.log("REQ.USER >>>", req.user);
+    const organizationId = req.user?._id; // safe optional chaining
+    if (!organizationId) throw new Error("User not logged in");
 
-  res.status(200).json({
-    success: true,
-    events,
-  });
+    const events = await ngoEventService.getEventsByOrganization(organizationId);
+    res.status(200).json({ success: true, events });
+  } catch (err) {
+    console.error("Backend error in getEventsByOrganization:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
+
 
 // Admin: approve or reject event
 const updateEventStatus = asyncHandler(async (req, res) => {
