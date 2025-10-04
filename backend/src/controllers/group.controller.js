@@ -95,6 +95,14 @@ export const getGroups = async (req, res) => {
             sortOrder = 'desc'
         } = req.query;
 
+        const userId = req.user?._id || req.user?.id;
+        
+        console.log('getGroups called:', {
+            hasUser: !!req.user,
+            userId: userId?.toString(),
+            userObject: req.user ? { id: req.user._id || req.user.id } : 'no user'
+        });
+
         const query = {};
 
         // Filter by category
@@ -132,12 +140,33 @@ export const getGroups = async (req, res) => {
 
         const total = await Group.countDocuments(query);
 
-        // Add member count to each group
-        const groupsWithStats = groups.map(group => ({
-            ...group,
-            memberCount: group.members.length,
-            recentActivity: group.updatedAt
-        }));
+        // Add member count and user-specific info to each group
+        const groupsWithStats = groups.map(group => {
+            const isCreator = userId && group.creator._id.toString() === userId.toString();
+            const memberEntry = userId ? group.members.find(m => m.user._id.toString() === userId.toString()) : null;
+            const isMember = isCreator || !!memberEntry;
+            
+            // Debug logging
+            if (group.name) {
+                console.log('Group membership check:', {
+                    groupName: group.name,
+                    userId: userId?.toString(),
+                    creatorId: group.creator._id.toString(),
+                    isCreator,
+                    memberEntry: memberEntry ? 'found' : 'not found',
+                    isMember,
+                    totalMembers: group.members.length
+                });
+            }
+            
+            return {
+                ...group,
+                memberCount: group.members.length,
+                recentActivity: group.updatedAt,
+                isMember: isMember,
+                userRole: isCreator ? 'creator' : (memberEntry?.role || null)
+            };
+        });
 
         res.json({
             success: true,
@@ -188,12 +217,17 @@ export const getUserGroups = async (req, res) => {
             .sort({ updatedAt: -1 })
             .lean();
 
-        const groupsWithStats = groups.map(group => ({
-            ...group,
-            memberCount: group.members.length,
-            userRole: group.creator.toString() === userId ? 'creator' : 
-                     group.members.find(m => m.user._id.toString() === userId)?.role || 'member'
-        }));
+        const groupsWithStats = groups.map(group => {
+            const isCreator = group.creator.toString() === userId.toString();
+            const memberEntry = group.members.find(m => m.user._id.toString() === userId.toString());
+            
+            return {
+                ...group,
+                memberCount: group.members.length,
+                isMember: true, // They're always members if fetching user groups
+                userRole: isCreator ? 'creator' : (memberEntry?.role || 'member')
+            };
+        });
 
         res.json({
             success: true,
@@ -241,8 +275,17 @@ export const getGroup = async (req, res) => {
                 group.creator.toString() === userId ? 'creator' : 
                 group.members.find(m => m.user._id.toString() === userId)?.role || null
             ) : null,
-            isMember: userId ? group.isMember(userId) : false
+            isMember: userId ? (group.isMember(userId) || group.creator.toString() === userId) : false
         };
+
+        console.log('Get Group Debug:', {
+            groupId,
+            userId,
+            userRole: groupData.userRole,
+            isMember: groupData.isMember,
+            isCreator: group.creator.toString() === userId,
+            membersCount: group.members.length
+        });
 
         res.json({
             success: true,
@@ -294,12 +337,22 @@ export const joinGroup = async (req, res) => {
         }
 
         await group.save();
-        await group.populate('members.user', 'name email');
+        await group.populate([
+            { path: 'creator', select: 'name email' },
+            { path: 'members.user', select: 'name email' }
+        ]);
+
+        const memberEntry = group.members.find(m => m.user._id.toString() === userId.toString());
 
         res.json({
             success: true,
             message: 'Successfully joined the group',
-            data: group
+            data: {
+                ...group.toObject(),
+                memberCount: group.members.length,
+                isMember: true,
+                userRole: memberEntry?.role || 'member'
+            }
         });
     } catch (error) {
         console.error('Join group error:', error);
@@ -341,9 +394,18 @@ export const leaveGroup = async (req, res) => {
 
         await group.save();
 
+        // Populate creator info for response
+        await group.populate('creator', 'name email');
+
         res.json({
             success: true,
-            message: 'Successfully left the group'
+            message: 'Successfully left the group',
+            data: {
+                _id: group._id,
+                memberCount: group.members.length,
+                isMember: false,
+                userRole: null
+            }
         });
     } catch (error) {
         console.error('Leave group error:', error);
@@ -373,6 +435,14 @@ export const sendMessage = async (req, res) => {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Only group members can send messages' 
+            });
+        }
+
+        // Check if user is the group creator (host)
+        if (group.creator.toString() !== userId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Only the group host can send messages'
             });
         }
 
@@ -437,9 +507,15 @@ export const getMessages = async (req, res) => {
         const { page = 1, limit = 50 } = req.query;
         const userId = req.user._id || req.user.id;
 
+        console.log('Get Messages Debug:', {
+            groupId,
+            userId,
+            userType: typeof userId,
+            userObject: req.user
+        });
+
         const group = await Group.findById(groupId)
-            .populate('messages.sender', 'name email')
-            .lean();
+            .populate('messages.sender', 'name email');
 
         if (!group) {
             return res.status(404).json({ 
@@ -448,7 +524,20 @@ export const getMessages = async (req, res) => {
             });
         }
 
-        if (!group.members.some(member => member.user.toString() === userId)) {
+        // Check if user can access messages (creator or member)
+        const isMember = group.isMember(userId);
+        const isCreator = group.creator.toString() === userId.toString();
+        
+        console.log('Access Check Debug:', {
+            isMember,
+            isCreator,
+            creatorId: group.creator.toString(),
+            userId: userId.toString(),
+            membersCount: group.members.length,
+            members: group.members.map(m => ({ user: m.user.toString(), role: m.role }))
+        });
+
+        if (!isMember && !isCreator) {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Only group members can view messages' 

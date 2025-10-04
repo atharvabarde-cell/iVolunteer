@@ -105,7 +105,7 @@ export function GroupChat({ groupId, onBack }: GroupChatProps) {
         }
     };
 
-    const isCreator = currentGroup?.creator._id === user?._id;
+    const isCreator = currentGroup?.userRole === 'creator' || currentGroup?.creator._id === user?._id || currentGroup?.creator._id === user?.id;
     const isAdmin = currentGroup?.userRole === 'admin' || isCreator;
 
     if (loading || messagesLoading) {
@@ -194,6 +194,7 @@ export function GroupChat({ groupId, onBack }: GroupChatProps) {
                 ) : (
                     messages.map((message) => {
                         const isOwnMessage = message.sender._id === user?._id;
+                        const isHostMessage = message.sender._id === currentGroup?.creator._id;
                         
                         return (
                             <div
@@ -202,15 +203,24 @@ export function GroupChat({ groupId, onBack }: GroupChatProps) {
                             >
                                 <div className={`max-w-xs lg:max-w-md ${isOwnMessage ? 'order-2' : 'order-1'}`}>
                                     {!isOwnMessage && (
-                                        <p className="text-xs text-gray-500 mb-1 px-3">
-                                            {message.sender.name}
-                                        </p>
+                                        <div className="flex items-center gap-1 mb-1 px-3">
+                                            <p className="text-xs text-gray-500">
+                                                {message.sender.name}
+                                            </p>
+                                            {isHostMessage && (
+                                                <div title="Group Host">
+                                                    <Crown className="w-3 h-3 text-amber-500" />
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                     
                                     <div
                                         className={`px-4 py-2 rounded-2xl ${
                                             isOwnMessage
                                                 ? 'bg-gradient-to-r from-primary to-emerald-600 text-white rounded-br-md'
+                                                : isHostMessage
+                                                ? 'bg-gradient-to-r from-amber-50 to-yellow-50 text-gray-900 border border-amber-200 rounded-bl-md'
                                                 : 'bg-gray-100 text-gray-900 rounded-bl-md'
                                         }`}
                                     >
@@ -246,39 +256,50 @@ export function GroupChat({ groupId, onBack }: GroupChatProps) {
             </div>
 
             {/* Message Input */}
-            {user && currentGroup.isMember ? (
-                <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
-                    <div className="flex items-center gap-2">
-                        <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Type your message..."
-                                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                                disabled={sending}
-                            />
+            {user && (currentGroup.isMember || isCreator) ? (
+                isCreator ? (
+                    <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 relative">
+                                <input
+                                    type="text"
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    placeholder="Type your message as group host..."
+                                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                    disabled={sending}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full"
+                                    disabled={sending}
+                                >
+                                    <ImageIcon className="w-4 h-4 text-gray-400" />
+                                </Button>
+                            </div>
+                            
                             <Button
-                                type="button"
-                                variant="ghost"
+                                type="submit"
+                                disabled={sending || !newMessage.trim()}
                                 size="sm"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full"
-                                disabled={sending}
+                                className="bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 text-white rounded-full px-4 py-3"
                             >
-                                <ImageIcon className="w-4 h-4 text-gray-400" />
+                                <Send className="w-4 h-4" />
                             </Button>
                         </div>
-                        
-                        <Button
-                            type="submit"
-                            disabled={sending || !newMessage.trim()}
-                            size="sm"
-                            className="bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 text-white rounded-full px-4 py-3"
-                        >
-                            <Send className="w-4 h-4" />
-                        </Button>
+                    </form>
+                ) : (
+                    <div className="p-4 border-t border-gray-200 text-center bg-gray-50">
+                        <div className="flex items-center justify-center gap-2 text-gray-600">
+                            <Crown className="w-4 h-4 text-amber-500" />
+                            <p className="text-sm">
+                                Only the group host can send messages in this group
+                            </p>
+                        </div>
                     </div>
-                </form>
+                )
             ) : (
                 <div className="p-4 border-t border-gray-200 text-center">
                     <p className="text-gray-500">

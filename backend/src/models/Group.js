@@ -153,6 +153,11 @@ groupSchema.methods.isAdmin = function(userId) {
     );
 };
 
+// Method to check if user is the creator/host
+groupSchema.methods.isCreator = function(userId) {
+    return this.creator.toString() === userId.toString();
+};
+
 // Method to add member
 groupSchema.methods.addMember = function(userId, role = 'member') {
     if (!this.isMember(userId) && this.members.length < this.maxMembers) {

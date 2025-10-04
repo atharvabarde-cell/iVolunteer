@@ -76,21 +76,23 @@ I've successfully implemented a comprehensive volunteer groups feature that allo
 ### 👥 Group Management
 - **Create Groups**: Volunteers can create groups with customizable settings
 - **Join Groups**: Easy one-click joining for public groups
+- **Leave Groups**: Members can leave groups they've joined (creators cannot leave their own groups)
 - **Privacy Controls**: Public and private group options
 - **Member Limits**: Configurable maximum member capacity
 - **Category System**: Organized by volunteer activity types
 
 ### 💬 Real-time Messaging
 - **Group Chat**: Dedicated chat for each group
+- **Host-Only Messaging**: Only group creators can send messages and images
 - **Message Types**: Support for text and image messages
 - **Message History**: Persistent chat history with pagination
-- **User Identification**: Clear message attribution with timestamps
+- **User Identification**: Clear message attribution with timestamps and host indicators
 - **Real-time Updates**: Messages appear instantly for all members
 
 ### 🛡️ Security & Permissions
 - **Authentication Required**: Only logged-in users can create/join groups
 - **Creator Privileges**: Group creators have full administrative control
-- **Member-only Chat**: Only group members can send messages
+- **Host-Only Communication**: Only group hosts can send messages, members can view
 - **Privacy Respect**: Private groups are invitation-only
 
 ### 🎨 User Experience
@@ -105,8 +107,15 @@ I've successfully implemented a comprehensive volunteer groups feature that allo
 2. **Browse Groups**: View available public groups with filtering options
 3. **Create Group**: Authenticated users can create new groups with custom settings
 4. **Join Groups**: One-click joining for public groups
-5. **Group Chat**: Real-time messaging with other group members
-6. **Group Management**: Creators can manage members and settings
+5. **Leave Groups**: Members can leave groups with one click (Leave button appears for joined groups)
+6. **Group Chat**: Host-only messaging where only group creators can send messages while members can view and read the conversation
+7. **Group Management**: Creators can manage members and settings
+
+## Button Behavior
+
+- **Not a Member**: Shows "Join" button to join the group
+- **Regular Member**: Shows "View Group" and "Leave" buttons
+- **Group Creator**: Shows only "View Group" button (creators cannot leave their own groups)
 
 ## Technical Highlights
 

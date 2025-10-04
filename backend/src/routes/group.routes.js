@@ -11,7 +11,7 @@ import {
     getMessages, 
     deleteGroup 
 } from '../controllers/group.controller.js';
-import { authentication } from '../middlewares/auth.middleware.js';
+import { authentication, optionalAuthentication } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -30,9 +30,9 @@ const upload = multer({
     }
 });
 
-// Public routes
-router.get('/', getGroups); // Get all public groups
-router.get('/:groupId', getGroup); // Get single group details
+// Routes with optional authentication (works for both logged in and non-logged in users)
+router.get('/', optionalAuthentication, getGroups); // Get all public groups
+router.get('/:groupId', optionalAuthentication, getGroup); // Get single group details
 
 // Protected routes (require authentication)
 router.use(authentication);

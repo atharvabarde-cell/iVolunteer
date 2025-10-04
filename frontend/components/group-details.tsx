@@ -159,7 +159,7 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
         );
     }
 
-    const isCreator = currentGroup.creator._id === user?._id;
+    const isCreator = currentGroup.userRole === 'creator' || currentGroup.creator._id === user?._id || currentGroup.creator._id === user?.id;
     const isMember = currentGroup.isMember;
 
     return (
@@ -402,6 +402,13 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Join Approval:</span>
                                     <span>{currentGroup.settings?.requireApproval ? 'Required' : 'Not Required'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Messaging:</span>
+                                    <span className="flex items-center gap-1">
+                                        <Crown className="w-4 h-4 text-amber-500" />
+                                        Host Only
+                                    </span>
                                 </div>
                             </div>
                         </div>

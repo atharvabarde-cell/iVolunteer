@@ -144,6 +144,14 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return handleApiCall(async () => {
             setLoading(true);
             const token = getToken();
+            
+            // Debug logging
+            console.log('getGroups - Auth Debug:', {
+                hasToken: !!token,
+                tokenLength: token?.length,
+                tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+            });
+            
             const queryParams = new URLSearchParams();
             
             Object.keys(filters).forEach(key => {
@@ -165,6 +173,18 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
 
             const result = await response.json();
+            
+            // Debug logging for response
+            console.log('getGroups - Response Debug:', {
+                totalGroups: result.data?.length,
+                firstGroupHasIsMember: result.data?.[0]?.isMember !== undefined,
+                sampleGroup: result.data?.[0] ? {
+                    name: result.data[0].name,
+                    isMember: result.data[0].isMember,
+                    userRole: result.data[0].userRole
+                } : 'no groups'
+            });
+            
             setGroups(result.data);
             setLoading(false);
             
@@ -277,6 +297,19 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to leave group');
             }
+
+            const result = await response.json();
+            const updatedGroup = result.data;
+
+            // Update groups list to reflect membership change
+            setGroups(prev => prev.map(group => 
+                group._id === groupId ? { 
+                    ...group, 
+                    isMember: false, 
+                    userRole: null,
+                    memberCount: updatedGroup.memberCount || group.memberCount - 1 
+                } : group
+            ));
 
             // Remove from user groups
             setUserGroups(prev => prev.filter(group => group._id !== groupId));

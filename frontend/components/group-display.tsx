@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, MessageSquare, Calendar, Globe, Lock, UserPlus, Crown } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Globe, Lock, UserPlus, UserMinus, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGroups } from '@/contexts/groups-context';
 import { useAuth } from '@/contexts/auth-context';
@@ -34,8 +34,19 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group, onJoin, onView }: GroupCardProps) {
-    const { joinGroup, loading } = useGroups();
+    const { joinGroup, leaveGroup, loading } = useGroups();
     const { user } = useAuth();
+
+    // Debug logging
+    React.useEffect(() => {
+        console.log('GroupCard Debug:', {
+            groupId: group._id,
+            groupName: group.name,
+            isMember: group.isMember,
+            userRole: group.userRole,
+            userId: user?.id || user?._id
+        });
+    }, [group, user]);
 
     const handleJoin = async () => {
         if (!user) {
@@ -59,6 +70,41 @@ export function GroupCard({ group, onJoin, onView }: GroupCardProps) {
         } catch (error: any) {
             toast({
                 title: 'Failed to join group',
+                description: error.message || 'Please try again',
+                variant: 'destructive'
+            });
+        }
+    };
+
+    const handleLeave = async () => {
+        if (!user) {
+            toast({
+                title: 'Authentication required',
+                description: 'Please log in to leave groups',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        // Don't allow creator to leave their own group
+        if (group.userRole === 'creator') {
+            toast({
+                title: 'Cannot leave group',
+                description: 'You are the creator of this group. Delete the group instead.',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        try {
+            await leaveGroup(group._id);
+            toast({
+                title: 'Left group',
+                description: `You have left ${group.name}`,
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Failed to leave group',
                 description: error.message || 'Please try again',
                 variant: 'destructive'
             });
@@ -167,21 +213,35 @@ export function GroupCard({ group, onJoin, onView }: GroupCardProps) {
                     <span>{group.memberCount} members</span>
                 </div>
                 <div className="flex items-center gap-1">
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Active</span>
+                    <Crown className="w-4 h-4 text-amber-500" />
+                    <span>Host messaging</span>
                 </div>
             </div>
 
             {/* Actions */}
             <div className="flex gap-2">
                 {group.isMember ? (
-                    <Button
-                        onClick={handleView}
-                        className="flex-1 bg-primary hover:bg-primary/90 text-white"
-                    >
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        View Group
-                    </Button>
+                    <>
+                        <Button
+                            onClick={handleView}
+                            className="flex-1 bg-primary hover:bg-primary/90 text-white"
+                        >
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            View Group
+                        </Button>
+                        {/* Show Leave button only for non-creators */}
+                        {group.userRole !== 'creator' && (
+                            <Button
+                                onClick={handleLeave}
+                                disabled={loading}
+                                variant="outline"
+                                className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                                <UserMinus className="w-4 h-4 mr-2" />
+                                Leave
+                            </Button>
+                        )}
+                    </>
                 ) : (
                     <>
                         <Button
