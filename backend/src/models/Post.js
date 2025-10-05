@@ -69,6 +69,11 @@ const postSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    city: {
+        type: String,
+        required: true,
+        trim: true
+    },
     imageUrl: {
         type: String,
         required: true
@@ -98,6 +103,7 @@ postSchema.pre('save', function(next) {
 // Add indexes for better query performance
 postSchema.index({ user: 1, createdAt: -1 });
 postSchema.index({ createdAt: -1 });
+postSchema.index({ city: 1, createdAt: -1 }); // Index for city-based filtering
 
 const Post = mongoose.model('Post', postSchema);
 

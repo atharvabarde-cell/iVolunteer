@@ -42,11 +42,26 @@ export const createPost = async (req, res) => {
             });
         }
 
+        // Get city from the logged-in user's profile
+        let city;
+        if (req.user.role === 'user') {
+            city = req.user.city;
+        } else if (req.user.role === 'ngo' || req.user.role === 'corporate') {
+            city = req.user.address?.city;
+        }
+
+        if (!city) {
+            return res.status(400).json({ 
+                message: 'User must have a city set in their profile to create posts' 
+            });
+        }
+
         const post = new Post({
             user: req.user._id,
             title: title.trim(),
             category,
             description: description.trim(),
+            city: city.trim(),
             imageUrl: req.file.path,
             cloudinaryPublicId: req.file.filename
         });
@@ -69,11 +84,30 @@ export const getPosts = async (req, res) => {
         const skip = (page - 1) * limit;
         const { category } = req.query;
 
-        // Build query object
-        const query = {};
+        // Get the user's city
+        let userCity;
+        if (req.user.role === 'user') {
+            userCity = req.user.city;
+        } else if (req.user.role === 'ngo' || req.user.role === 'corporate') {
+            userCity = req.user.address?.city;
+        }
+
+        if (!userCity) {
+            return res.status(400).json({ 
+                message: 'User city information is required to view posts' 
+            });
+        }
+
+        // Build query object - filter by user's city (case-insensitive)
+        const query = { 
+            city: new RegExp(`^${userCity.trim()}$`, 'i') 
+        };
         if (category && category !== 'all') {
             query.category = category;
         }
+
+        console.log('User city:', userCity);
+        console.log('Query:', query);
 
         const posts = await Post.find(query)
             .sort({ createdAt: -1 })
@@ -84,6 +118,10 @@ export const getPosts = async (req, res) => {
             .populate('reactions.user', 'name profilePicture');
 
         const total = await Post.countDocuments(query);
+        
+        console.log('Posts found:', posts.length);
+        console.log('Total posts in city:', total);
+        
         res.json({
             posts,
             currentPage: page,
