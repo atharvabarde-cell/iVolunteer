@@ -70,6 +70,7 @@ interface GroupsContextType {
     sendMessage: (groupId: string, content: string, messageType?: string, file?: File) => Promise<Message>;
     getMessages: (groupId: string, page?: number) => Promise<any>;
     deleteGroup: (groupId: string) => Promise<void>;
+    updateGroup: (groupId: string, updates: { name?: string; description?: string; category?: string; tags?: string[] }) => Promise<void>;
     promoteMemberToAdmin: (groupId: string, memberId: string) => Promise<void>;
     demoteMemberFromAdmin: (groupId: string, memberId: string) => Promise<void>;
     removeMemberFromGroup: (groupId: string, memberId: string) => Promise<void>;
@@ -428,6 +429,42 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
     };
 
+    const updateGroup = async (groupId: string, updates: { name?: string; description?: string; category?: string; tags?: string[] }): Promise<void> => {
+        return handleApiCall(async () => {
+            const token = getToken();
+            if (!token) throw new Error('Authentication required');
+            
+            const response = await fetch(`${API_BASE_URL}/v1/groups/${groupId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updates),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update group');
+            }
+
+            const result = await response.json();
+            
+            // Update current group with new data
+            if (currentGroup?._id === groupId) {
+                setCurrentGroup(result.data);
+            }
+
+            // Update in groups list
+            setGroups(prev => prev.map(group => 
+                group._id === groupId ? result.data : group
+            ));
+            setUserGroups(prev => prev.map(group => 
+                group._id === groupId ? result.data : group
+            ));
+        });
+    };
+
     const promoteMemberToAdmin = async (groupId: string, memberId: string): Promise<void> => {
         return handleApiCall(async () => {
             const token = getToken();
@@ -556,6 +593,7 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendMessage,
         getMessages,
         deleteGroup,
+        updateGroup,
         promoteMemberToAdmin,
         demoteMemberFromAdmin,
         removeMemberFromGroup,

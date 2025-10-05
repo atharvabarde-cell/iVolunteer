@@ -34,7 +34,7 @@ export function Header() {
 
   const baseNavItems = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/posts", label: "Posts" },
+    { href: "/posts", label: "Community" },
     { href: "/volunteer", label: "Volunteer", icon: HeartHandshake },
     { href: "/donate", label: "Donate", icon: DollarSign },
     { href: "/activities", label: "Activities", icon: Calendar },

@@ -33,6 +33,10 @@ interface SignupData {
   email: string;
   password: string;
   role: UserRole;
+  // Volunteer-specific fields
+  age?: number;
+  city?: string;
+  profession?: string;
   // NGO-specific fields
   organizationType?: string;
   websiteUrl?: string;

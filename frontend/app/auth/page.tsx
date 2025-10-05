@@ -24,6 +24,11 @@ type FormValues = {
   password: string;
   confirmPassword?: string;
   role: string;
+  // Volunteer-specific fields
+  age?: number;
+  city?: string;
+  profession?: string;
+  customProfession?: string;
   // NGO-specific fields
   organizationType?: string;
   websiteUrl?: string;
@@ -81,6 +86,11 @@ export default function AuthPage() {
         email: data.email,
         password: data.password,
         role: data.role as any,
+        ...(data.role === "user" && {
+          age: data.age,
+          city: data.city,
+          profession: data.profession === "other" ? data.customProfession : data.profession
+        }),
         ...(data.role === "ngo" && {
           organizationType: data.organizationType,
           websiteUrl: data.websiteUrl,
@@ -315,69 +325,23 @@ export default function AuthPage() {
               )}
             </div>
 
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  {...register("password", {
-                    required: "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "Password must be at least 6 characters",
-                    },
-                  })}
-                  className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-    ${
-      errors.password
-        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
-    } 
-    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
-    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-
-            {/* Confirm Password for signup  */}
-            {tab === "signup" && (
+            {/* Password Field for Login */}
+            {tab === "login" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Confirm Password <span className="text-red-500">*</span>
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
-                    type={showConfirmPassword ? "text" : "password"}
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    {...register("confirmPassword", {
-                      required: "Confirm password is required",
-                      validate: (val) =>
-                        val === watch("password") || "Passwords do not match",
+                    {...register("password", {
+                      required: "Password is required",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters",
+                      },
                     })}
                     className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
@@ -391,31 +355,302 @@ export default function AuthPage() {
     ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
                   />
 
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
-                    {!errors.confirmPassword && watch("confirmPassword") && (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
                     )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Volunteer-specific fields for signup */}
+            {tab === "signup" && selectedRole === "user" && (
+              <>
+                {/* Age */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Age <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Enter your age"
+                    min="13"
+                    max="120"
+                    {...register("age", {
+                      required: selectedRole === "user" ? "Age is required" : false,
+                      valueAsNumber: true,
+                      min: { 
+                        value: 13, 
+                        message: "You must be at least 13 years old" 
+                      },
+                      max: { 
+                        value: 120, 
+                        message: "Please enter a valid age" 
+                      },
+                      validate: {
+                        validAge: (value) => {
+                          if (!value && selectedRole !== "user") return true;
+                          if (!value) return "Age is required";
+                          if (value < 13 || value > 120) {
+                            return "Please enter a valid age between 13 and 120";
+                          }
+                          return true;
+                        }
+                      }
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.age
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                  />
+                  {errors.age && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.age.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* City */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter your city"
+                    {...register("city", {
+                      required: selectedRole === "user" ? "City is required" : false,
+                      minLength: {
+                        value: 2,
+                        message: "City name must be at least 2 characters"
+                      },
+                      maxLength: {
+                        value: 100,
+                        message: "City name cannot exceed 100 characters"
+                      }
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.city
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                  />
+                  {errors.city && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.city.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Profession */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Profession <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("profession", {
+                      required: selectedRole === "user" ? "Profession is required" : false
+                    })}
+                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                      ${errors.profession
+                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      } text-gray-900 dark:text-white`}
+                  >
+                    <option value="">Select your profession</option>
+                    <option value="student">Student</option>
+                    <option value="teacher-educator">Teacher/Educator</option>
+                    <option value="software-engineer">Software Engineer</option>
+                    <option value="data-scientist">Data Scientist</option>
+                    <option value="doctor-medical-professional">Doctor/Medical Professional</option>
+                    <option value="nurse">Nurse</option>
+                    <option value="engineer">Engineer</option>
+                    <option value="accountant">Accountant</option>
+                    <option value="business-analyst">Business Analyst</option>
+                    <option value="marketing-professional">Marketing Professional</option>
+                    <option value="sales-professional">Sales Professional</option>
+                    <option value="hr-professional">HR Professional</option>
+                    <option value="lawyer">Lawyer</option>
+                    <option value="designer">Designer</option>
+                    <option value="architect">Architect</option>
+                    <option value="consultant">Consultant</option>
+                    <option value="entrepreneur">Entrepreneur</option>
+                    <option value="freelancer">Freelancer</option>
+                    <option value="artist">Artist</option>
+                    <option value="writer-author">Writer/Author</option>
+                    <option value="journalist">Journalist</option>
+                    <option value="photographer">Photographer</option>
+                    <option value="chef-cook">Chef/Cook</option>
+                    <option value="mechanic">Mechanic</option>
+                    <option value="electrician">Electrician</option>
+                    <option value="plumber">Plumber</option>
+                    <option value="carpenter">Carpenter</option>
+                    <option value="farmer">Farmer</option>
+                    <option value="researcher-scientist">Researcher/Scientist</option>
+                    <option value="government-employee">Government Employee</option>
+                    <option value="police-officer">Police Officer</option>
+                    <option value="military-defense">Military/Defense</option>
+                    <option value="social-worker">Social Worker</option>
+                    <option value="homemaker">Homemaker</option>
+                    <option value="retired">Retired</option>
+                    <option value="unemployed-seeking">Unemployed/Seeking Opportunities</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {errors.profession && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.profession.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Custom Profession - shown when "Other" is selected */}
+                {watch("profession") === "other" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Please specify your profession <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter your profession"
+                      {...register("customProfession", {
+                        required: watch("profession") === "other" ? "Please specify your profession" : false,
+                        maxLength: {
+                          value: 100,
+                          message: "Profession cannot exceed 100 characters"
+                        }
+                      })}
+                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        ${errors.customProfession
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                    />
+                    {errors.customProfession && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.customProfession.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Password Field */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      {...register("password", {
+                        required: "Password is required",
+                        minLength: {
+                          value: 6,
+                          message: "Password must be at least 6 characters",
+                        },
+                      })}
+                      className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.password
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
+                    />
+
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="text-gray-400 hover:text-gray-600"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
-                      {showConfirmPassword ? (
+                      {showPassword ? (
                         <EyeOff className="h-5 w-5" />
                       ) : (
                         <Eye className="h-5 w-5" />
                       )}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.password.message}
+                    </p>
+                  )}
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      {...register("confirmPassword", {
+                        required: "Confirm password is required",
+                        validate: (val) =>
+                          val === watch("password") || "Passwords do not match",
+                      })}
+                      className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.password
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
+                    />
+
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+                      {!errors.confirmPassword && watch("confirmPassword") && (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+              </>
             )}
 
             {/* NGO-specific fields for signup */}

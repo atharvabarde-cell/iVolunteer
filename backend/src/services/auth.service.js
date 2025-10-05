@@ -29,6 +29,13 @@ const register = async (data) => {
     coins: 50, // Give 50 coins for registration
   };
 
+  // Add Volunteer-specific fields if role is 'user'
+  if (data.role === "user") {
+    userData.age = data.age;
+    userData.city = data.city;
+    userData.profession = data.profession;
+  }
+
   // Add NGO-specific fields if role is 'ngo'
   if (data.role === "ngo") {
     userData.organizationType = data.organizationType;
