@@ -70,6 +70,9 @@ interface GroupsContextType {
     sendMessage: (groupId: string, content: string, messageType?: string, file?: File) => Promise<Message>;
     getMessages: (groupId: string, page?: number) => Promise<any>;
     deleteGroup: (groupId: string) => Promise<void>;
+    promoteMemberToAdmin: (groupId: string, memberId: string) => Promise<void>;
+    demoteMemberFromAdmin: (groupId: string, memberId: string) => Promise<void>;
+    removeMemberFromGroup: (groupId: string, memberId: string) => Promise<void>;
     setCurrentGroup: (group: Group | null) => void;
     clearError: () => void;
 }
@@ -165,7 +168,13 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const response = await fetch(url, {
                 headers: token ? {
                     'Authorization': `Bearer ${token}`,
-                } : {},
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                } : {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                },
+                cache: 'no-store',
             });
 
             if (!response.ok) {
@@ -220,7 +229,13 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const response = await fetch(`${API_BASE_URL}/v1/groups/${groupId}`, {
                 headers: token ? {
                     'Authorization': `Bearer ${token}`,
-                } : {},
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                } : {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                },
+                cache: 'no-store',
             });
 
             if (!response.ok) {
@@ -370,7 +385,10 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const response = await fetch(`${API_BASE_URL}/v1/groups/${groupId}/messages?page=${page}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
                 },
+                cache: 'no-store',
             });
 
             if (!response.ok) {
@@ -410,6 +428,108 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
     };
 
+    const promoteMemberToAdmin = async (groupId: string, memberId: string): Promise<void> => {
+        return handleApiCall(async () => {
+            const token = getToken();
+            if (!token) throw new Error('Authentication required');
+            
+            const response = await fetch(`${API_BASE_URL}/v1/groups/${groupId}/members/${memberId}/promote`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to promote member');
+            }
+
+            const result = await response.json();
+            
+            // Update current group with new data
+            if (currentGroup?._id === groupId) {
+                setCurrentGroup(result.data);
+            }
+
+            // Update in groups list
+            setGroups(prev => prev.map(group => 
+                group._id === groupId ? result.data : group
+            ));
+            setUserGroups(prev => prev.map(group => 
+                group._id === groupId ? result.data : group
+            ));
+        });
+    };
+
+    const demoteMemberFromAdmin = async (groupId: string, memberId: string): Promise<void> => {
+        return handleApiCall(async () => {
+            const token = getToken();
+            if (!token) throw new Error('Authentication required');
+            
+            const response = await fetch(`${API_BASE_URL}/v1/groups/${groupId}/members/${memberId}/demote`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to demote admin');
+            }
+
+            const result = await response.json();
+            
+            // Update current group with new data
+            if (currentGroup?._id === groupId) {
+                setCurrentGroup(result.data);
+            }
+
+            // Update in groups list
+            setGroups(prev => prev.map(group => 
+                group._id === groupId ? result.data : group
+            ));
+            setUserGroups(prev => prev.map(group => 
+                group._id === groupId ? result.data : group
+            ));
+        });
+    };
+
+    const removeMemberFromGroup = async (groupId: string, memberId: string): Promise<void> => {
+        return handleApiCall(async () => {
+            const token = getToken();
+            if (!token) throw new Error('Authentication required');
+            
+            const response = await fetch(`${API_BASE_URL}/v1/groups/${groupId}/members/${memberId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to remove member');
+            }
+
+            const result = await response.json();
+            
+            // Update current group with new data
+            if (currentGroup?._id === groupId) {
+                setCurrentGroup(result.data);
+            }
+
+            // Update in groups list
+            setGroups(prev => prev.map(group => 
+                group._id === groupId ? result.data : group
+            ));
+            setUserGroups(prev => prev.map(group => 
+                group._id === groupId ? result.data : group
+            ));
+        });
+    };
+
     const clearError = () => {
         setError(null);
     };
@@ -436,6 +556,9 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendMessage,
         getMessages,
         deleteGroup,
+        promoteMemberToAdmin,
+        demoteMemberFromAdmin,
+        removeMemberFromGroup,
         setCurrentGroup,
         clearError,
     };

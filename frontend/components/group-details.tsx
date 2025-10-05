@@ -28,7 +28,7 @@ interface GroupDetailsProps {
 }
 
 export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
-    const { currentGroup, getGroup, joinGroup, leaveGroup, deleteGroup, loading } = useGroups();
+    const { currentGroup, getGroup, joinGroup, leaveGroup, deleteGroup, promoteMemberToAdmin, demoteMemberFromAdmin, removeMemberFromGroup, loading } = useGroups();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'info'>('chat');
     const [actionLoading, setActionLoading] = useState(false);
@@ -52,6 +52,8 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
         try {
             setActionLoading(true);
             await joinGroup(groupId);
+            // Refetch group details to update the UI with new membership status
+            await getGroup(groupId);
             toast({
                 title: 'Successfully joined!',
                 description: `Welcome to ${currentGroup?.name}`,
@@ -107,6 +109,73 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
         } catch (error: any) {
             toast({
                 title: 'Failed to delete group',
+                description: error.message || 'Please try again',
+                variant: 'destructive'
+            });
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handlePromoteMember = async (memberId: string, memberName: string) => {
+        try {
+            setActionLoading(true);
+            await promoteMemberToAdmin(groupId, memberId);
+            // Refetch group details to update the UI
+            await getGroup(groupId);
+            toast({
+                title: 'Member promoted',
+                description: `${memberName} is now an admin`,
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Failed to promote member',
+                description: error.message || 'Please try again',
+                variant: 'destructive'
+            });
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleDemoteMember = async (memberId: string, memberName: string) => {
+        try {
+            setActionLoading(true);
+            await demoteMemberFromAdmin(groupId, memberId);
+            // Refetch group details to update the UI
+            await getGroup(groupId);
+            toast({
+                title: 'Admin demoted',
+                description: `${memberName} is now a regular member`,
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Failed to demote admin',
+                description: error.message || 'Please try again',
+                variant: 'destructive'
+            });
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleRemoveMember = async (memberId: string, memberName: string) => {
+        if (!confirm(`Are you sure you want to remove ${memberName} from the group?`)) {
+            return;
+        }
+
+        try {
+            setActionLoading(true);
+            await removeMemberFromGroup(groupId, memberId);
+            // Refetch group details to update the UI
+            await getGroup(groupId);
+            toast({
+                title: 'Member removed',
+                description: `${memberName} has been removed from the group`,
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Failed to remove member',
                 description: error.message || 'Please try again',
                 variant: 'destructive'
             });
@@ -322,30 +391,92 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
                 {activeTab === 'members' && (
                     <div className="p-6">
                         <div className="space-y-4">
-                            {currentGroup.members?.map((member) => (
-                                <div key={member.user._id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
-                                        {member.user.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-medium text-gray-900">{member.user.name}</p>
-                                            {member.user._id === currentGroup.creator._id && (
-                                                <Crown className="w-4 h-4 text-yellow-500" />
-                                            )}
-                                            {member.role === 'admin' && member.user._id !== currentGroup.creator._id && (
-                                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                                    Admin
-                                                </span>
-                                            )}
+                            {currentGroup.members?.map((member) => {
+                                const isHost = member.user._id === currentGroup.creator._id;
+                                const isAdmin = member.role === 'admin' && !isHost;
+                                const currentAdminCount = currentGroup.members.filter(m => 
+                                    m.role === 'admin' && m.user._id !== currentGroup.creator._id
+                                ).length;
+                                const canPromote = isCreator && !isHost && member.role !== 'admin' && currentAdminCount < 2;
+                                const canDemote = isCreator && isAdmin;
+                                const canRemove = isCreator && !isHost;
+
+                                return (
+                                    <div key={member.user._id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+                                            {member.user.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <p className="text-sm text-gray-500">
-                                            Joined {format(new Date(member.joinedAt), 'MMM d, yyyy')}
-                                        </p>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-medium text-gray-900">{member.user.name}</p>
+                                                {isHost && (
+                                                    <span className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                                        <Crown className="w-3 h-3" />
+                                                        Host
+                                                    </span>
+                                                )}
+                                                {isAdmin && (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                        Admin
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-gray-500">
+                                                Joined {format(new Date(member.joinedAt), 'MMM d, yyyy')}
+                                            </p>
+                                        </div>
+                                        {/* Admin management buttons - only visible to host */}
+                                        {isCreator && !isHost && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {canPromote && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handlePromoteMember(member.user._id, member.user.name)}
+                                                        disabled={actionLoading}
+                                                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                    >
+                                                        <UserPlus className="w-4 h-4 mr-1" />
+                                                        Make Admin
+                                                    </Button>
+                                                )}
+                                                {canDemote && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleDemoteMember(member.user._id, member.user.name)}
+                                                        disabled={actionLoading}
+                                                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                                    >
+                                                        <UserMinus className="w-4 h-4 mr-1" />
+                                                        Remove Admin
+                                                    </Button>
+                                                )}
+                                                {canRemove && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleRemoveMember(member.user._id, member.user.name)}
+                                                        disabled={actionLoading}
+                                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 mr-1" />
+                                                        Remove
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
+                        {isCreator && (
+                            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <p className="text-sm text-blue-800">
+                                    <strong>Group Management:</strong> You can promote up to 2 members as admins and remove any member from the group.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -407,7 +538,7 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
                                     <span className="text-gray-600">Messaging:</span>
                                     <span className="flex items-center gap-1">
                                         <Crown className="w-4 h-4 text-amber-500" />
-                                        Host Only
+                                        Host & Admins Only
                                     </span>
                                 </div>
                             </div>

@@ -9,7 +9,11 @@ import {
     leaveGroup, 
     sendMessage, 
     getMessages, 
-    deleteGroup 
+    deleteGroup,
+    updateGroup,
+    promoteMemberToAdmin,
+    demoteMemberFromAdmin,
+    removeMemberFromGroup
 } from '../controllers/group.controller.js';
 import { authentication, optionalAuthentication } from '../middlewares/auth.middleware.js';
 
@@ -39,6 +43,7 @@ router.use(authentication);
 
 // Group management routes
 router.post('/', upload.single('image'), createGroup); // Create new group
+router.put('/:groupId', updateGroup); // Update group details (host only)
 router.delete('/:groupId', deleteGroup); // Delete group (creator only)
 
 // User-specific routes
@@ -47,6 +52,11 @@ router.get('/user/my-groups', getUserGroups); // Get user's groups
 // Group interaction routes
 router.post('/:groupId/join', joinGroup); // Join a group
 router.post('/:groupId/leave', leaveGroup); // Leave a group
+
+// Admin management routes (host only)
+router.post('/:groupId/members/:memberId/promote', promoteMemberToAdmin); // Promote member to admin
+router.post('/:groupId/members/:memberId/demote', demoteMemberFromAdmin); // Demote admin to member
+router.delete('/:groupId/members/:memberId', removeMemberFromGroup); // Remove member from group (host only)
 
 // Message routes
 router.post('/:groupId/messages', upload.single('image'), sendMessage); // Send message

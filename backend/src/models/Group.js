@@ -142,15 +142,21 @@ groupSchema.virtual('memberCount').get(function() {
 
 // Method to check if user is member
 groupSchema.methods.isMember = function(userId) {
-    return this.members.some(member => member.user.toString() === userId.toString());
+    return this.members.some(member => {
+        // Handle both populated (object) and unpopulated (ObjectId) cases
+        const memberId = member.user._id ? member.user._id.toString() : member.user.toString();
+        return memberId === userId.toString();
+    });
 };
 
 // Method to check if user is admin
 groupSchema.methods.isAdmin = function(userId) {
     if (this.creator.toString() === userId.toString()) return true;
-    return this.members.some(member => 
-        member.user.toString() === userId.toString() && member.role === 'admin'
-    );
+    return this.members.some(member => {
+        // Handle both populated (object) and unpopulated (ObjectId) cases
+        const memberId = member.user._id ? member.user._id.toString() : member.user.toString();
+        return memberId === userId.toString() && member.role === 'admin';
+    });
 };
 
 // Method to check if user is the creator/host
@@ -169,7 +175,11 @@ groupSchema.methods.addMember = function(userId, role = 'member') {
 
 // Method to remove member
 groupSchema.methods.removeMember = function(userId) {
-    const index = this.members.findIndex(member => member.user.toString() === userId.toString());
+    const index = this.members.findIndex(member => {
+        // Handle both populated (object) and unpopulated (ObjectId) cases
+        const memberId = member.user._id ? member.user._id.toString() : member.user.toString();
+        return memberId === userId.toString();
+    });
     if (index > -1) {
         this.members.splice(index, 1);
         return true;

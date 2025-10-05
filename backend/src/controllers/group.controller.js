@@ -1,6 +1,7 @@
 import Group from '../models/Group.js';
 import { User } from '../models/User.js';
 import { cloudinary } from '../config/cloudinary.js';
+import fs from 'fs/promises';
 
 // Create a new group
 export const createGroup = async (req, res) => {
@@ -168,6 +169,11 @@ export const getGroups = async (req, res) => {
             };
         });
 
+        // Prevent caching to ensure fresh membership data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+
         res.json({
             success: true,
             data: groupsWithStats,
@@ -268,24 +274,28 @@ export const getGroup = async (req, res) => {
             });
         }
 
+        // Calculate user-specific data FIRST
+        const isCreator = userId ? group.creator._id.toString() === userId.toString() : false;
+        const memberEntry = userId ? group.members.find(m => m.user._id.toString() === userId.toString()) : null;
+        const calculatedIsMember = userId ? (isCreator || !!memberEntry) : false;
+        const calculatedUserRole = userId ? (
+            isCreator ? 'creator' : (memberEntry?.role || null)
+        ) : null;
+
+        // Now build the response object
+        const groupObj = group.toObject();
         const groupData = {
-            ...group.toObject(),
+            ...groupObj,
             memberCount: group.members.length,
-            userRole: userId ? (
-                group.creator.toString() === userId ? 'creator' : 
-                group.members.find(m => m.user._id.toString() === userId)?.role || null
-            ) : null,
-            isMember: userId ? (group.isMember(userId) || group.creator.toString() === userId) : false
+            // Override with calculated values
+            userRole: calculatedUserRole,
+            isMember: calculatedIsMember
         };
 
-        console.log('Get Group Debug:', {
-            groupId,
-            userId,
-            userRole: groupData.userRole,
-            isMember: groupData.isMember,
-            isCreator: group.creator.toString() === userId,
-            membersCount: group.members.length
-        });
+        // Prevent caching to ensure fresh membership data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
 
         res.json({
             success: true,
@@ -438,31 +448,46 @@ export const sendMessage = async (req, res) => {
             });
         }
 
-        // Check if user is the group creator (host)
-        if (group.creator.toString() !== userId.toString()) {
+        // Check if user is the group creator (host) or an admin
+        if (!group.isAdmin(userId)) {
             return res.status(403).json({
                 success: false,
-                message: 'Only the group host can send messages'
+                message: 'Only the group host and admins can send messages'
             });
         }
 
         let imageUrl = null;
         let cloudinaryPublicId = null;
 
-        // Handle image upload for image messages
-        if (messageType === 'image' && req.file) {
+        // Handle image upload if file is provided
+        if (req.file) {
             try {
                 const result = await cloudinary.uploader.upload(req.file.path, {
                     folder: 'group-messages',
                     transformation: [
-                        { width: 800, height: 600, crop: 'limit' },
+                        { width: 1200, height: 1200, crop: 'limit' },
                         { quality: 'auto' }
                     ]
                 });
                 imageUrl = result.secure_url;
                 cloudinaryPublicId = result.public_id;
+
+                // Delete temporary file after upload
+                try {
+                    await fs.unlink(req.file.path);
+                } catch (unlinkError) {
+                    console.error('Failed to delete temporary file:', unlinkError);
+                }
             } catch (uploadError) {
                 console.error('Message image upload error:', uploadError);
+                // Clean up temp file on error
+                if (req.file?.path) {
+                    try {
+                        await fs.unlink(req.file.path);
+                    } catch (unlinkError) {
+                        console.error('Failed to delete temporary file:', unlinkError);
+                    }
+                }
                 return res.status(500).json({ 
                     success: false, 
                     message: 'Failed to upload message image' 
@@ -470,10 +495,18 @@ export const sendMessage = async (req, res) => {
             }
         }
 
+        // Validate message has content or image
+        if (!content && !imageUrl) {
+            return res.status(400).json({
+                success: false,
+                message: 'Message must have text content or an image'
+            });
+        }
+
         const message = {
             sender: userId,
             content: content || '',
-            messageType,
+            messageType: imageUrl ? 'image' : 'text',
             imageUrl,
             cloudinaryPublicId,
             createdAt: new Date()
@@ -551,6 +584,11 @@ export const getMessages = async (req, res) => {
         const endIndex = startIndex + parseInt(limit);
         const paginatedMessages = sortedMessages.slice(startIndex, endIndex);
 
+        // Prevent caching to ensure real-time message updates
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+
         res.json({
             success: true,
             data: paginatedMessages.reverse(), // Reverse to show oldest first in chat
@@ -622,6 +660,328 @@ export const deleteGroup = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Failed to delete group' 
+        });
+    }
+};
+
+// Update group details (host only)
+export const updateGroup = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const { name, description, category, tags, isPrivate, maxMembers, settings } = req.body;
+        const userId = req.user._id || req.user.id;
+
+        const group = await Group.findById(groupId)
+            .populate('creator', 'name email')
+            .populate('members.user', 'name email');
+
+        if (!group) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Group not found' 
+            });
+        }
+
+        // Only the creator/host can update the group
+        if (group.creator._id.toString() !== userId.toString()) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Only group host can update group details' 
+            });
+        }
+
+        // Update fields if provided
+        if (name !== undefined && name.trim()) {
+            group.name = name.trim();
+        }
+
+        if (description !== undefined && description.trim()) {
+            group.description = description.trim();
+        }
+
+        if (category !== undefined && category.trim()) {
+            group.category = category.trim();
+        }
+
+        if (tags !== undefined) {
+            // Handle tags as array or comma-separated string
+            if (Array.isArray(tags)) {
+                group.tags = tags.map(tag => tag.trim()).filter(tag => tag);
+            } else if (typeof tags === 'string') {
+                group.tags = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+            }
+        }
+
+        if (isPrivate !== undefined) {
+            group.isPrivate = Boolean(isPrivate);
+        }
+
+        if (maxMembers !== undefined) {
+            const maxMem = parseInt(maxMembers);
+            if (maxMem >= 2 && maxMem <= 500) {
+                group.maxMembers = maxMem;
+            }
+        }
+
+        if (settings !== undefined && typeof settings === 'object') {
+            if (settings.allowMemberInvites !== undefined) {
+                group.settings.allowMemberInvites = Boolean(settings.allowMemberInvites);
+            }
+            if (settings.requireApproval !== undefined) {
+                group.settings.requireApproval = Boolean(settings.requireApproval);
+            }
+        }
+
+        group.updatedAt = new Date();
+        await group.save();
+
+        const isCreator = group.creator._id.toString() === userId.toString();
+        const memberEntry = group.members.find(m => {
+            const mId = m.user._id ? m.user._id.toString() : m.user.toString();
+            return mId === userId.toString();
+        });
+
+        res.json({
+            success: true,
+            message: 'Group updated successfully',
+            data: {
+                ...group.toObject(),
+                memberCount: group.members.length,
+                isMember: true,
+                userRole: isCreator ? 'creator' : (memberEntry?.role || 'member')
+            }
+        });
+    } catch (error) {
+        console.error('Update group error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to update group' 
+        });
+    }
+};
+
+// Promote member to admin (host only)
+export const promoteMemberToAdmin = async (req, res) => {
+    try {
+        const { groupId, memberId } = req.params;
+        const userId = req.user._id || req.user.id;
+
+        const group = await Group.findById(groupId)
+            .populate('creator', 'name email')
+            .populate('members.user', 'name email');
+
+        if (!group) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Group not found' 
+            });
+        }
+
+        // Only the creator/host can promote members
+        if (group.creator._id.toString() !== userId.toString()) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Only group host can promote members to admin' 
+            });
+        }
+
+        // Check if the member exists in the group
+        const memberToPromote = group.members.find(m => m.user._id.toString() === memberId);
+        if (!memberToPromote) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Member not found in this group' 
+            });
+        }
+
+        // Check if member is already an admin
+        if (memberToPromote.role === 'admin') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'This member is already an admin' 
+            });
+        }
+
+        // Check if we already have 2 additional admins (excluding the creator)
+        const currentAdmins = group.members.filter(m => 
+            m.role === 'admin' && m.user._id.toString() !== group.creator._id.toString()
+        );
+
+        if (currentAdmins.length >= 2) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Maximum of 2 additional admins allowed. Demote an existing admin first.' 
+            });
+        }
+
+        // Promote the member
+        memberToPromote.role = 'admin';
+        await group.save();
+
+        res.json({
+            success: true,
+            message: 'Member promoted to admin successfully',
+            data: {
+                ...group.toObject(),
+                memberCount: group.members.length,
+                isMember: true,
+                userRole: 'creator'
+            }
+        });
+    } catch (error) {
+        console.error('Promote member error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to promote member to admin' 
+        });
+    }
+};
+
+// Demote admin to member (host only)
+export const demoteMemberFromAdmin = async (req, res) => {
+    try {
+        const { groupId, memberId } = req.params;
+        const userId = req.user._id || req.user.id;
+
+        const group = await Group.findById(groupId)
+            .populate('creator', 'name email')
+            .populate('members.user', 'name email');
+
+        if (!group) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Group not found' 
+            });
+        }
+
+        // Only the creator/host can demote admins
+        if (group.creator._id.toString() !== userId.toString()) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Only group host can demote admins' 
+            });
+        }
+
+        // Check if the member exists in the group
+        const memberToDemote = group.members.find(m => m.user._id.toString() === memberId);
+        if (!memberToDemote) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Member not found in this group' 
+            });
+        }
+
+        // Check if member is the creator
+        if (memberId === group.creator._id.toString()) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot demote the group host' 
+            });
+        }
+
+        // Check if member is an admin
+        if (memberToDemote.role !== 'admin') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'This member is not an admin' 
+            });
+        }
+
+        // Demote the member
+        memberToDemote.role = 'member';
+        await group.save();
+
+        res.json({
+            success: true,
+            message: 'Admin demoted to member successfully',
+            data: {
+                ...group.toObject(),
+                memberCount: group.members.length,
+                isMember: true,
+                userRole: 'creator'
+            }
+        });
+    } catch (error) {
+        console.error('Demote member error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to demote admin to member' 
+        });
+    }
+};
+
+// Remove member from group (host only)
+export const removeMemberFromGroup = async (req, res) => {
+    try {
+        const { groupId, memberId } = req.params;
+        const userId = req.user._id || req.user.id;
+
+        const group = await Group.findById(groupId)
+            .populate('creator', 'name email')
+            .populate('members.user', 'name email');
+
+        if (!group) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Group not found' 
+            });
+        }
+
+        // Only the creator/host can remove members
+        if (group.creator._id.toString() !== userId.toString()) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Only group host can remove members' 
+            });
+        }
+
+        // Check if the member exists in the group
+        const memberToRemove = group.members.find(m => {
+            const mId = m.user._id ? m.user._id.toString() : m.user.toString();
+            return mId === memberId;
+        });
+
+        if (!memberToRemove) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Member not found in this group' 
+            });
+        }
+
+        // Cannot remove the creator/host
+        if (memberId === group.creator._id.toString()) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot remove the group host' 
+            });
+        }
+
+        // Remove the member
+        const success = group.removeMember(memberId);
+        if (!success) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Failed to remove member from group' 
+            });
+        }
+
+        await group.save();
+
+        res.json({
+            success: true,
+            message: 'Member removed from group successfully',
+            data: {
+                ...group.toObject(),
+                memberCount: group.members.length,
+                isMember: true,
+                userRole: 'creator'
+            }
+        });
+    } catch (error) {
+        console.error('Remove member error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to remove member from group' 
         });
     }
 };
