@@ -91,9 +91,9 @@ const eventSchema = new mongoose.Schema(
         message: "{VALUE} is not a supported category",
       },
     },
-    participants: { 
-      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], 
-      default: [] 
+    participants: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      default: [],
     },
 
     maxParticipants: {
@@ -136,6 +136,25 @@ const eventSchema = new mongoose.Schema(
         caption: String,
       },
     ],
+    completionProof: {
+      type: {
+        url: {
+          type: String,
+          required: function () {
+            // Only required if completion is pending
+            return this.completionStatus === "pending";
+          },
+        },
+        caption: String,
+      },
+      required: false,
+    },
+    completionStatus: {
+      type: String,
+      enum: ["none", "pending", "accepted", "rejected"],
+      default: "none",
+    },
+
     sponsorshipRequired: {
       type: Boolean,
       default: true,

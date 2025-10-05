@@ -12,7 +12,6 @@ import Howitworks from "@/components/Howitworks";
 import Hero from "@/components/ui/Hero";
 
 import Adminstats from "@/components/Adminstats";
-import Approvalqueueadmin from "@/components/Approvalqueueadmin";
 import CSRAnalytics from "@/components/Csranalytics";
 import Dailyquote from "@/components/Dailyquote";
 import Eventbutton from "@/components/Eventbutton";
@@ -21,13 +20,14 @@ import Ngoeventtable from "@/components/Ngoeventtable";
 import Sponsorshipopp from "@/components/Sponsorshipopp";
 import Useractivity from "@/components/Useractivity";
 import Useranalytics from "@/components/Useranalytics";
-import Usermanagementtable from "@/components/Usermanagementtable";
 import Userrewardstoredash from "@/components/Userrewardstoredash";
 import Donationeventbutton from "@/components/Donationeventbutton";
 import PointsDisplay from "@/components/PointsDisplay.";
 import { motion } from "framer-motion";
 import PendingRequestsCTA from "@/components/PendingRequestsCTA";
 import Donationreqcta from "@/components/Donationreqcta";
+import Eventcompltreqcta from "@/components/Eventcompltreqcta";
+
 
 // Dashboard components
 function AdminDashboard() {
@@ -45,6 +45,7 @@ function AdminDashboard() {
 
       <Donationreqcta />
       <PendingRequestsCTA />
+      <Eventcompltreqcta/>
 
       <div className="mt-16">
       <Footer />
@@ -62,6 +63,7 @@ function NGODashboard() {
         <Eventbutton />
         <Donationeventbutton />
       </div>
+     
       <Ngoeventtable />
       <Footer />
     </section>

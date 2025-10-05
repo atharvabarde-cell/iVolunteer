@@ -1,8 +1,17 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, Clock, Users, ChevronDown, Search, Filter, Calendar } from "lucide-react";
+import {
+  CheckCircle,
+  Clock,
+  Users,
+  ChevronDown,
+  Search,
+  Filter,
+  Calendar,
+} from "lucide-react";
 import api from "@/lib/api"; // your axios instance
+import Link from "next/link";
 
 interface EventItem {
   _id: string;
@@ -21,7 +30,10 @@ const Ngoeventtable = () => {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "date", direction: "ascending" });
+  const [sortConfig, setSortConfig] = useState({
+    key: "date",
+    direction: "ascending",
+  });
   const [loading, setLoading] = useState(true);
 
   // Fetch events from backend
@@ -33,26 +45,37 @@ const Ngoeventtable = () => {
         console.error("No auth token found");
         return;
       }
-      
+
       // Add cache-busting parameter to prevent 304 responses
       const timestamp = new Date().getTime();
-      const res = await api.get<{ success: boolean; events: any[] }>(`/v1/event/organization?_t=${timestamp}`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-      });
-      
+      const res = await api.get<{ success: boolean; events: any[] }>(
+        `/v1/event/organization?_t=${timestamp}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        }
+      );
+
       console.log("Fetched events:", res.data); // Debug log
-      
+
       // Map backend fields to frontend display fields
       const mappedEvents = res.data.events.map((e) => {
         const participantCount = e.participants?.length || 0;
-        const progress = e.maxParticipants ? Math.round((participantCount / e.maxParticipants) * 100) : 0;
-        
+        const progress = e.maxParticipants
+          ? Math.round((participantCount / e.maxParticipants) * 100)
+          : 0;
+
         // Determine display status based on event status and capacity
-        let displayStatus: "Open" | "Ongoing" | "Full" | "pending" | "approved" | "rejected" = e.status;
+        let displayStatus:
+          | "Open"
+          | "Ongoing"
+          | "Full"
+          | "pending"
+          | "approved"
+          | "rejected" = e.status;
         if (e.status === "approved") {
           if (participantCount >= e.maxParticipants) {
             displayStatus = "Full";
@@ -62,7 +85,7 @@ const Ngoeventtable = () => {
             displayStatus = "Open";
           }
         }
-        
+
         return {
           _id: e._id,
           title: e.title,
@@ -73,7 +96,7 @@ const Ngoeventtable = () => {
           status: displayStatus,
           progress: progress,
           eventStatus: e.eventStatus,
-          participants: e.participants
+          participants: e.participants,
         };
       });
       setEvents(mappedEvents);
@@ -108,7 +131,11 @@ const Ngoeventtable = () => {
 
   // Filtering
   const filteredEvents = sortedEvents
-    .filter((event) => (filter === "all" ? true : event.status.toLowerCase() === filter.toLowerCase()))
+    .filter((event) =>
+      filter === "all"
+        ? true
+        : event.status.toLowerCase() === filter.toLowerCase()
+    )
     .filter(
       (event) =>
         event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -117,23 +144,31 @@ const Ngoeventtable = () => {
 
   const requestSort = (key: keyof EventItem) => {
     let direction = "ascending";
-    if (sortConfig.key === key && sortConfig.direction === "ascending") direction = "descending";
+    if (sortConfig.key === key && sortConfig.direction === "ascending")
+      direction = "descending";
     setSortConfig({ key, direction });
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading events...</div>;
+  if (loading)
+    return (
+      <div className="p-8 text-center text-gray-500">Loading events...</div>
+    );
 
   return (
     <section className="px-4 py-6 md:px-4 md:py-8 rounded-2xl border border-gray-100 md:m-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Upcoming Events</h2>
-          <p className="text-gray-500 mt-1">Manage and track your upcoming volunteer events</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
+            Upcoming Events
+          </h2>
+          <p className="text-gray-500 mt-1">
+            Manage and track your upcoming volunteer events
+          </p>
         </div>
         <button className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm">
           <Calendar className="w-4 h-4" />
-          View All Events
+          <Link href="/allngoevents">View All Events</Link>
         </button>
       </div>
 
@@ -172,18 +207,32 @@ const Ngoeventtable = () => {
         <table className="w-full">
           <thead>
             <tr className="bg-blue-50 text-left text-sm text-gray-700">
-              {["title", "date", "location", "volunteers", "status", "action"].map((col) => (
+              {[
+                "title",
+                "date",
+                "location",
+                "volunteers",
+                "status",
+                "action",
+              ].map((col) => (
                 <th
                   key={col}
                   className="p-4 font-semibold cursor-pointer hover:bg-gray-100 transition"
-                  onClick={() => col !== "volunteers" && col !== "action" && requestSort(col as keyof EventItem)}
+                  onClick={() =>
+                    col !== "volunteers" &&
+                    col !== "action" &&
+                    requestSort(col as keyof EventItem)
+                  }
                 >
                   <div className="flex items-center gap-1">
                     {col.charAt(0).toUpperCase() + col.slice(1)}
                     {col !== "volunteers" && col !== "action" && (
                       <ChevronDown
                         className={`w-4 h-4 transition-transform ${
-                          sortConfig.key === col && sortConfig.direction === "descending" ? "rotate-180" : ""
+                          sortConfig.key === col &&
+                          sortConfig.direction === "descending"
+                            ? "rotate-180"
+                            : ""
                         }`}
                       />
                     )}
@@ -203,7 +252,9 @@ const Ngoeventtable = () => {
                   transition={{ duration: 0.2 }}
                   className="border-t border-gray-100 bg-white hover:bg-gray-50 transition-all"
                 >
-                  <td className="p-4 font-medium text-gray-900">{event.title}</td>
+                  <td className="p-4 font-medium text-gray-900">
+                    {event.title}
+                  </td>
                   <td className="p-4 text-gray-600">{event.date}</td>
                   <td className="p-4 text-gray-600">{event.location}</td>
                   <td className="p-4">
@@ -241,8 +292,8 @@ const Ngoeventtable = () => {
                     )}
                   </td>
                   <td className="p-4 text-right">
-                    <button className="px-4 py-1.5 rounded-lg text-sm font-medium transition bg-blue-600 text-white hover:bg-blue-700 shadow-sm">
-                      Manage
+                    <button className="px-4 py-1.5 rounded-lg text-sm font-medium transition bg-red-600 text-white hover:bg-red-700 shadow-sm">
+                      End Event
                     </button>
                   </td>
                 </motion.tr>
@@ -252,7 +303,9 @@ const Ngoeventtable = () => {
         </table>
 
         {filteredEvents.length === 0 && (
-          <div className="p-8 text-center text-gray-500">No events found matching your criteria</div>
+          <div className="p-8 text-center text-gray-500">
+            No events found matching your criteria
+          </div>
         )}
       </div>
     </section>
