@@ -5,10 +5,14 @@ import { CreatePost } from '@/components/create-post';
 import { PostDisplay } from '@/components/post-display';
 import { usePosts } from '@/contexts/post-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useGroups } from '@/contexts/groups-context';
 import { Header } from '@/components/header';
 import Footer from '@/components/Footer';
 import { Loader2, RefreshCcw, MessageSquare, Users, Sparkles } from 'lucide-react';
 import { format, subDays, isAfter } from 'date-fns';
+import { CreateGroup } from '@/components/create-group';
+import { GroupList } from '@/components/group-display';
+import { GroupDetails } from '@/components/group-details';
 // Category options (should match categoryConfig in post-display)
 const categoryOptions = [
     'All',
@@ -71,6 +75,7 @@ function CreatePostSection() {
 
 export default function PostsPage() {
     const { posts, loading, error, getPosts } = usePosts();
+    const { groups, getGroups, loading: groupsLoading } = useGroups();
     const { user } = useAuth();
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -78,6 +83,9 @@ export default function PostsPage() {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedTime, setSelectedTime] = useState('all');
     const [searchText, setSearchText] = useState('');
+    const [activeTab, setActiveTab] = useState<'posts' | 'groups'>('posts');
+    const [showCreateGroup, setShowCreateGroup] = useState(false);
+    const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
     // Filtering logic
     const filteredPosts = useMemo(() => {
         let filtered = posts;
@@ -116,13 +124,21 @@ export default function PostsPage() {
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
-        await loadPosts(1);
+        if (activeTab === 'posts') {
+            await loadPosts(1);
+        } else {
+            await getGroups();
+        }
         setIsRefreshing(false);
     };
 
     useEffect(() => {
-        loadPosts();
-    }, []);
+        if (activeTab === 'posts') {
+            loadPosts();
+        } else {
+            getGroups();
+        }
+    }, [activeTab]);
 
     if (error) {
         return (
@@ -179,21 +195,51 @@ export default function PostsPage() {
                         <span className="text-primary font-semibold">Community Hub</span>
                         <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
                     </div>
-                    <h1 className="text-4xl sm:text-5xl font-black text-slate-900 mb-4 font-serif">Community Posts</h1>
+                    <h1 className="text-4xl sm:text-5xl font-black text-slate-900 mb-4 font-serif">Community Posts & Groups</h1>
                     <p className="text-slate-600 text-lg sm:text-xl max-w-2xl mx-auto">Share your volunteer journey, inspire others, and connect with like-minded changemakers in our community</p>
                 </section>
+
+                {/* Tab Navigation */}
+                <div className="flex justify-center mb-8">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-primary/10">
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setActiveTab('posts')}
+                                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                                    activeTab === 'posts'
+                                        ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-lg'
+                                        : 'text-gray-600 hover:text-primary hover:bg-primary/5'
+                                }`}
+                            >
+                                <MessageSquare className="w-4 h-4 inline mr-2" />
+                                Posts
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('groups')}
+                                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                                    activeTab === 'groups'
+                                        ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-lg'
+                                        : 'text-gray-600 hover:text-primary hover:bg-primary/5'
+                                }`}
+                            >
+                                <Users className="w-4 h-4 inline mr-2" />
+                                Groups
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Stats Section */}
                 <section className="mb-12 flex gap-4 justify-center">
                     <div className="flex-1 max-w-xs flex flex-col items-center p-4 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg hover:scale-105 transition-transform duration-300">
-                        <Users className="w-6 h-6 mb-2" />
+                        <MessageSquare className="w-6 h-6 mb-2" />
                         <span className="text-xl font-bold">{posts.length}</span>
                         <span className="text-sm uppercase">Active Posts</span>
                     </div>
                     <div className="flex-1 max-w-xs flex flex-col items-center p-4 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg hover:scale-105 transition-transform duration-300">
-                        <MessageSquare className="w-6 h-6 mb-2" />
-                        <span className="text-xl font-bold">Community</span>
-                        <span className="text-sm uppercase">Sharing</span>
+                        <Users className="w-6 h-6 mb-2" />
+                        <span className="text-xl font-bold">{groups.length}</span>
+                        <span className="text-sm uppercase">Active Groups</span>
                     </div>
                 </section>
 
@@ -203,138 +249,204 @@ export default function PostsPage() {
                         variant="outline"
                         size="sm"
                         onClick={handleRefresh}
-                        disabled={loading || isRefreshing}
+                        disabled={loading || isRefreshing || groupsLoading}
                         className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border-primary/20 hover:bg-primary/5 transition-all duration-300"
                     >
                         <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        Refresh Posts
+                        Refresh {activeTab === 'posts' ? 'Posts' : 'Groups'}
                     </Button>
                 </div>
                 
-                {/* Create Post Section */}
-                {user ? (
-                    <CreatePostSection />
-                ) : (
+                {/* Create Post/Group Section */}
+                {user && (
+                    <div className="mb-12">
+                        {activeTab === 'posts' ? (
+                            <CreatePostSection />
+                        ) : (
+                            <div className="mb-12">
+                                {!showCreateGroup ? (
+                                    <div className="flex justify-center">
+                                        <Button
+                                            onClick={() => setShowCreateGroup(true)}
+                                            className="bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                                        >
+                                            + Create Group
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-primary/10">
+                                        <CreateGroup 
+                                            onClose={() => setShowCreateGroup(false)}
+                                            onSuccess={() => setShowCreateGroup(false)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {!user && (
                     <div className="mb-12">
                         <div className="bg-gradient-to-br from-primary/5 to-emerald-500/5 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-primary/10 text-center">
                             <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary to-emerald-600 rounded-full flex items-center justify-center mb-4">
-                                <MessageSquare className="w-8 h-8 text-white" />
+                                {activeTab === 'posts' ? (
+                                    <MessageSquare className="w-8 h-8 text-white" />
+                                ) : (
+                                    <Users className="w-8 h-8 text-white" />
+                                )}
                             </div>
-                            <h2 className="text-2xl font-bold text-slate-900 mb-3">Want to share your volunteer experience?</h2>
-                            <p className="text-slate-600 text-lg mb-6 max-w-md mx-auto">Sign in to create posts and share your journey with the community.</p>
+                            <h2 className="text-2xl font-bold text-slate-900 mb-3">
+                                {activeTab === 'posts' 
+                                    ? 'Want to share your volunteer experience?' 
+                                    : 'Want to create or join volunteer groups?'
+                                }
+                            </h2>
+                            <p className="text-slate-600 text-lg mb-6 max-w-md mx-auto">
+                                {activeTab === 'posts'
+                                    ? 'Sign in to create posts and share your journey with the community.'
+                                    : 'Sign in to create groups and connect with other volunteers.'
+                                }
+                            </p>
                             <Button 
                                 asChild
                                 className="bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                             >
-                                <a href="/auth">Sign In to Post</a>
+                                <a href="/auth">Sign In to {activeTab === 'posts' ? 'Post' : 'Join Groups'}</a>
                             </Button>
                         </div>
                     </div>
                 )}
 
-
-                {/* Filter Controls */}
-                <div className="flex flex-wrap gap-6 mb-10 justify-center items-end bg-gradient-to-r from-blue-50 via-emerald-50 to-pink-50 rounded-2xl p-6 shadow-md border border-primary/10">
-                    {/* Search Input */}
-                    <div className="flex flex-col items-start w-full max-w-md">
-                        <label htmlFor="search-posts" className="text-sm font-semibold text-primary mb-2 flex items-center gap-1">
-                            <span role="img" aria-label="Search">🔍</span> Search Posts
-                        </label>
-                        <input
-                            id="search-posts"
-                            type="text"
-                            value={searchText}
-                            onChange={e => setSearchText(e.target.value)}
-                            placeholder="Search by title or description..."
-                            className="rounded-xl border border-primary/20 bg-white px-4 py-2 text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all w-full"
-                        />
-                    </div>
-                    <div className="flex flex-col items-start">
-                        <label htmlFor="category-filter" className="text-sm font-semibold text-primary mb-2 flex items-center gap-1">
-                            <span role="img" aria-label="Category">📂</span> Category
-                        </label>
-                        <div className="relative w-48">
-                            <select
-                                id="category-filter"
-                                value={selectedCategory}
-                                onChange={e => setSelectedCategory(e.target.value)}
-                                className="appearance-none w-full rounded-xl border border-primary/20 bg-white px-4 py-2 pr-10 text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-                            >
-                                {categoryOptions.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary text-lg">▼</span>
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-start">
-                        <label htmlFor="time-filter" className="text-sm font-semibold text-primary mb-2 flex items-center gap-1">
-                            <span role="img" aria-label="Time">⏰</span> Time
-                        </label>
-                        <div className="relative w-48">
-                            <select
-                                id="time-filter"
-                                value={selectedTime}
-                                onChange={e => setSelectedTime(e.target.value)}
-                                className="appearance-none w-full rounded-xl border border-primary/20 bg-white px-4 py-2 pr-10 text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-                            >
-                                {timeOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary text-lg">▼</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Posts Content */}
-                <div className="space-y-8">
-                    {loading && currentPage === 1 ? (
-                        <div className="flex flex-col items-center justify-center py-16">
-                            <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-emerald-500/20 rounded-full flex items-center justify-center mb-4">
-                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                {/* Content Section */}
+                {activeTab === 'posts' ? (
+                    <>
+                        {/* Filter Controls */}
+                        <div className="flex flex-wrap gap-6 mb-10 justify-center items-end bg-gradient-to-r from-blue-50 via-emerald-50 to-pink-50 rounded-2xl p-6 shadow-md border border-primary/10">
+                            {/* Search Input */}
+                            <div className="flex flex-col items-start w-full max-w-md">
+                                <label htmlFor="search-posts" className="text-sm font-semibold text-primary mb-2 flex items-center gap-1">
+                                    <span role="img" aria-label="Search">🔍</span> Search Posts
+                                </label>
+                                <input
+                                    id="search-posts"
+                                    type="text"
+                                    value={searchText}
+                                    onChange={e => setSearchText(e.target.value)}
+                                    placeholder="Search by title or description..."
+                                    className="rounded-xl border border-primary/20 bg-white px-4 py-2 text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all w-full"
+                                />
                             </div>
-                            <p className="text-slate-600 text-lg">Loading community posts...</p>
-                        </div>
-                    ) : (
-                        <>
-                            {filteredPosts.map((post) => (
-                                <PostDisplay key={post._id} post={post} searchText={searchText} />
-                            ))}
-
-                            {filteredPosts.length === 0 && (
-                                <div className="text-center py-16">
-                                    <div className="w-20 h-20 mx-auto bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center mb-6">
-                                        <MessageSquare className="w-10 h-10 text-slate-500" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold text-slate-700 mb-3">No posts found</h3>
-                                    <p className="text-slate-500 text-lg">
-                                        {user ? 'Try changing your filter criteria.' : 'Sign in to create the first post!'}
-                                    </p>
-                                </div>
-                            )}
-
-                            {filteredPosts.length > 0 && hasMore && (
-                                <div className="text-center pt-8">
-                                    <Button
-                                        onClick={() => loadPosts(currentPage + 1)}
-                                        disabled={loading}
-                                        className="bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                            <div className="flex flex-col items-start">
+                                <label htmlFor="category-filter" className="text-sm font-semibold text-primary mb-2 flex items-center gap-1">
+                                    <span role="img" aria-label="Category">📂</span> Category
+                                </label>
+                                <div className="relative w-48">
+                                    <select
+                                        id="category-filter"
+                                        value={selectedCategory}
+                                        onChange={e => setSelectedCategory(e.target.value)}
+                                        className="appearance-none w-full rounded-xl border border-primary/20 bg-white px-4 py-2 pr-10 text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
                                     >
-                                        {loading ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                                Loading More Posts...
-                                            </>
-                                        ) : (
-                                            'Load More Posts'
-                                        )}
-                                    </Button>
+                                        {categoryOptions.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary text-lg">▼</span>
                                 </div>
+                            </div>
+                            <div className="flex flex-col items-start">
+                                <label htmlFor="time-filter" className="text-sm font-semibold text-primary mb-2 flex items-center gap-1">
+                                    <span role="img" aria-label="Time">⏰</span> Time
+                                </label>
+                                <div className="relative w-48">
+                                    <select
+                                        id="time-filter"
+                                        value={selectedTime}
+                                        onChange={e => setSelectedTime(e.target.value)}
+                                        className="appearance-none w-full rounded-xl border border-primary/20 bg-white px-4 py-2 pr-10 text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                                    >
+                                        {timeOptions.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary text-lg">▼</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Posts Content */}
+                        <div className="space-y-8">
+                            {loading && currentPage === 1 ? (
+                                <div className="flex flex-col items-center justify-center py-16">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-emerald-500/20 rounded-full flex items-center justify-center mb-4">
+                                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                    </div>
+                                    <p className="text-slate-600 text-lg">Loading community posts...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {filteredPosts.map((post) => (
+                                        <PostDisplay key={post._id} post={post} searchText={searchText} />
+                                    ))}
+
+                                    {filteredPosts.length === 0 && (
+                                        <div className="text-center py-16">
+                                            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center mb-6">
+                                                <MessageSquare className="w-10 h-10 text-slate-500" />
+                                            </div>
+                                            <h3 className="text-2xl font-bold text-slate-700 mb-3">No posts found</h3>
+                                            <p className="text-slate-500 text-lg">
+                                                {user ? 'Try changing your filter criteria.' : 'Sign in to create the first post!'}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {filteredPosts.length > 0 && hasMore && (
+                                        <div className="text-center pt-8">
+                                            <Button
+                                                onClick={() => loadPosts(currentPage + 1)}
+                                                disabled={loading}
+                                                className="bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                                            >
+                                                {loading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                        Loading More Posts...
+                                                    </>
+                                                ) : (
+                                                    'Load More Posts'
+                                                )}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
                             )}
-                        </>
-                    )}
-                </div>
+                        </div>
+                    </>
+                ) : (
+                    /* Groups Content */
+                    <div className="space-y-8">
+                        {selectedGroupId ? (
+                            <GroupDetails 
+                                groupId={selectedGroupId}
+                                onBack={() => setSelectedGroupId(null)}
+                            />
+                        ) : (
+                            <GroupList 
+                                groups={groups} 
+                                loading={groupsLoading}
+                                onView={(group) => {
+                                    setSelectedGroupId(group._id);
+                                }}
+                                onJoin={(group) => {
+                                    // Handle successful join
+                                    console.log('Joined group:', group);
+                                }}
+                            />
+                        )}
+                    </div>
+                )}
             </main>
             <Footer />
         </div>

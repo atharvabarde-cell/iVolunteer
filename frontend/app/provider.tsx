@@ -11,6 +11,7 @@ import { ToastContainer } from "react-toastify";
 import { CorporateProvider } from "@/contexts/corporate-context";
 import { DonationEventProvider } from "@/contexts/donationevents-context";
 import { PointsProvider } from "@/contexts/points-context";
+import { GroupsProvider } from "@/contexts/groups-context";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -21,18 +22,20 @@ export function Providers({ children }: { children: ReactNode }) {
             <NGOProvider>
               <CorporateProvider>
                 <PostProvider>
-                  <DonationEventProvider>
-                    {children}
-                    <ToastContainer
-                      position="top-right"
-                      autoClose={3000}
-                      hideProgressBar
-                      closeOnClick
-                      pauseOnHover
-                      draggable
-                      theme="light"
-                    />
-                  </DonationEventProvider>
+                  <GroupsProvider>
+                    <DonationEventProvider>
+                      {children}
+                      <ToastContainer
+                        position="top-right"
+                        autoClose={3000}
+                        hideProgressBar
+                        closeOnClick
+                        pauseOnHover
+                        draggable
+                        theme="light"
+                      />
+                    </DonationEventProvider>
+                  </GroupsProvider>
                 </PostProvider>
               </CorporateProvider>
             </NGOProvider>
