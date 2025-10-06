@@ -149,7 +149,7 @@ export function GroupChat({ groupId, onBack }: GroupChatProps) {
         }
     };
 
-    const isCreator = currentGroup?.userRole === 'creator' || currentGroup?.creator._id === user?._id || currentGroup?.creator._id === user?.id;
+    const isCreator = currentGroup?.userRole === 'creator' || currentGroup?.creator?._id === user?._id || currentGroup?.creator?._id === user?.id;
     const isAdmin = currentGroup?.userRole === 'admin';
     const canSendMessages = isCreator || isAdmin;
 
@@ -246,10 +246,10 @@ export function GroupChat({ groupId, onBack }: GroupChatProps) {
                     </div>
                 ) : (
                     messages.map((message) => {
-                        const isOwnMessage = message.sender._id === user?._id;
-                        const isHostMessage = message.sender._id === currentGroup?.creator._id;
+                        const isOwnMessage = message.sender?._id === user?._id;
+                        const isHostMessage = message.sender?._id === currentGroup?.creator?._id;
                         const isAdminMessage = currentGroup?.members?.find(
-                            m => m.user._id === message.sender._id
+                            m => m.user?._id === message.sender?._id
                         )?.role === 'admin' && !isHostMessage;
                         
                         return (
@@ -261,7 +261,7 @@ export function GroupChat({ groupId, onBack }: GroupChatProps) {
                                     {!isOwnMessage && (
                                         <div className="flex items-center gap-1 mb-1 px-3">
                                             <p className="text-xs text-gray-500">
-                                                {message.sender.name}
+                                                {message.sender?.name || 'Deleted User'}
                                             </p>
                                             {isHostMessage && (
                                                 <div title="Group Host">

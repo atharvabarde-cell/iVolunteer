@@ -36,6 +36,14 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "ngo", "admin", "corporate"],
       default: "user",
     },
+    profilePicture: {
+      type: String,
+      default: null,
+    },
+    cloudinaryPublicId: {
+      type: String,
+      default: null,
+    },
     // Volunteer (user) specific fields
     age: {
       type: Number,

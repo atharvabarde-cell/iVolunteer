@@ -372,7 +372,7 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
         );
     }
 
-    const isCreator = currentGroup.userRole === 'creator' || currentGroup.creator._id === user?._id || currentGroup.creator._id === user?.id;
+    const isCreator = currentGroup.userRole === 'creator' || currentGroup.creator?._id === user?._id || currentGroup.creator?._id === user?.id;
     const isMember = currentGroup.isMember;
 
     return (
@@ -420,7 +420,7 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
                                         {currentGroup.name}
                                         {isCreator && <Crown className="w-5 h-5 text-yellow-500 inline ml-2" />}
                                     </h1>
-                                    <p className="text-gray-600 mb-3">by {currentGroup.creator.name}</p>
+                                    <p className="text-gray-600 mb-3">by {currentGroup.creator?.name || 'Deleted User'}</p>
                                     <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
                                         <div className="flex items-center gap-1">
                                             <Users className="w-4 h-4" />
@@ -540,23 +540,23 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
                     <div className="p-6">
                         <div className="space-y-4">
                             {currentGroup.members?.map((member) => {
-                                const isHost = member.user._id === currentGroup.creator._id;
+                                const isHost = member.user?._id === currentGroup.creator?._id;
                                 const isAdmin = member.role === 'admin' && !isHost;
                                 const currentAdminCount = currentGroup.members.filter(m => 
-                                    m.role === 'admin' && m.user._id !== currentGroup.creator._id
+                                    m.role === 'admin' && m.user?._id !== currentGroup.creator?._id
                                 ).length;
                                 const canPromote = isCreator && !isHost && member.role !== 'admin' && currentAdminCount < 2;
                                 const canDemote = isCreator && isAdmin;
                                 const canRemove = isCreator && !isHost;
 
                                 return (
-                                    <div key={member.user._id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50">
+                                    <div key={member.user?._id || `deleted-member-${member.joinedAt}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50">
                                         <div className="w-10 h-10 bg-gradient-to-br from-primary to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
-                                            {member.user.name.charAt(0).toUpperCase()}
+                                            {member.user?.name?.charAt(0).toUpperCase() || 'D'}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
-                                                <p className="font-medium text-gray-900">{member.user.name}</p>
+                                                <p className="font-medium text-gray-900">{member.user?.name || 'Deleted User'}</p>
                                                 {isHost && (
                                                     <span className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                                                         <Crown className="w-3 h-3" />
@@ -574,7 +574,7 @@ export function GroupDetails({ groupId, onBack }: GroupDetailsProps) {
                                             </p>
                                         </div>
                                         {/* Admin management buttons - only visible to host */}
-                                        {isCreator && !isHost && (
+                                        {isCreator && !isHost && member.user && (
                                             <div className="flex flex-wrap gap-2">
                                                 {canPromote && (
                                                     <Button

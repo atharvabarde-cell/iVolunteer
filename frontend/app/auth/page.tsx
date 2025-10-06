@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
@@ -15,8 +15,12 @@ import {
   Users,
   Shield,
   CheckCircle,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import axios from "axios";
 
 type FormValues = {
   name?: string;
@@ -58,6 +62,9 @@ export default function AuthPage() {
   const [tab, setTab] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -77,6 +84,40 @@ export default function AuthPage() {
   ];
 
   const selectedRole = watch("role");
+
+  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    setProfilePicture(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfilePicturePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeProfilePicture = () => {
+    setProfilePicture(null);
+    setProfilePicturePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const onSubmit = async (data: FormValues) => {
     if (tab === "signup") {
@@ -116,6 +157,30 @@ export default function AuthPage() {
 
       const success = await signup(signupData);
       if (success) {
+        // Upload profile picture if provided
+        if (profilePicture) {
+          try {
+            const formData = new FormData();
+            formData.append("profilePicture", profilePicture);
+
+            const token = localStorage.getItem("auth-token");
+            await axios.post(
+              `${process.env.NEXT_PUBLIC_API_URL}/v1/auth/upload-profile-picture`,
+              formData,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "multipart/form-data",
+                },
+              }
+            );
+            toast.success("Profile picture uploaded successfully!");
+          } catch (error) {
+            console.error("Error uploading profile picture:", error);
+            toast.warn("Account created but profile picture upload failed. You can upload it later from your profile.");
+          }
+        }
+
         toast.success("Account created successfully!");
         toast.success(`Welcome to iVolunteer, ${data.name}! You've been awarded 50 coins as a welcome bonus!`);
         router.push("/");
@@ -288,6 +353,76 @@ export default function AuthPage() {
               </div>
             )}
 
+            {/* Profile Picture Upload - Optional for all roles during signup */}
+            {tab === "signup" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Profile Picture <span className="text-gray-400 text-xs">(optional)</span>
+                </label>
+                
+                {!profilePicturePreview ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="cursor-pointer border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 hover:border-blue-500 dark:hover:border-blue-400 transition-all text-center"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <Upload className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Click to upload profile picture
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          PNG, JPG up to 5MB
+                        </p>
+                      </div>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePictureChange}
+                      className="hidden"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="flex items-center gap-4 p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
+                      <Avatar className="w-16 h-16">
+                        <AvatarImage src={profilePicturePreview} alt="Profile preview" />
+                        <AvatarFallback>
+                          <User className="w-8 h-8" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {profilePicture?.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {(profilePicture!.size / 1024).toFixed(2)} KB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeProfilePicture}
+                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                      >
+                        <X className="w-5 h-5 text-red-500" />
+                      </button>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePictureChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -324,6 +459,110 @@ export default function AuthPage() {
                 </p>
               )}
             </div>
+
+            {/* Password Field for Admin Signup */}
+            {tab === "signup" && selectedRole === "admin" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      {...register("password", {
+                        required: "Password is required",
+                        minLength: {
+                          value: 6,
+                          message: "Password must be at least 6 characters",
+                        },
+                      })}
+                      className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.password
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      {...register("confirmPassword", {
+                        required: "Confirm password is required",
+                        validate: (val) =>
+                          val === watch("password") || "Passwords do not match",
+                      })}
+                      className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.confirmPassword
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
+                    />
+
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+                      {!errors.confirmPassword && watch("confirmPassword") && (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Password Field for Login */}
             {tab === "login" && (
@@ -1059,6 +1298,107 @@ export default function AuthPage() {
                     </p>
                   )}
                 </div>
+
+                {/* Password Field for NGO */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      {...register("password", {
+                        required: "Password is required",
+                        minLength: {
+                          value: 6,
+                          message: "Password must be at least 6 characters",
+                        },
+                      })}
+                      className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.password
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Confirm Password for NGO */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      {...register("confirmPassword", {
+                        required: "Confirm password is required",
+                        validate: (val) =>
+                          val === watch("password") || "Passwords do not match",
+                      })}
+                      className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.confirmPassword
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
+                    />
+
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+                      {!errors.confirmPassword && watch("confirmPassword") && (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
               </>
             )}
 
@@ -1497,6 +1837,107 @@ export default function AuthPage() {
                   {errors.csrFocusAreas && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.csrFocusAreas.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Password Field for Corporate */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      {...register("password", {
+                        required: "Password is required",
+                        minLength: {
+                          value: 6,
+                          message: "Password must be at least 6 characters",
+                        },
+                      })}
+                      className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.password
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Confirm Password for Corporate */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      {...register("confirmPassword", {
+                        required: "Confirm password is required",
+                        validate: (val) =>
+                          val === watch("password") || "Passwords do not match",
+                      })}
+                      className={`w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+    ${
+      errors.confirmPassword
+        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+    } 
+    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+    ![&]:border-green-500 ![&]:focus:border-green-500 ![&]:focus:ring-green-500
+    ![&:focus]:border-green-500 ![&:focus]:ring-green-500`}
+                    />
+
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+                      {!errors.confirmPassword && watch("confirmPassword") && (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.confirmPassword.message}
                     </p>
                   )}
                 </div>

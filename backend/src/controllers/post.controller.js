@@ -43,8 +43,11 @@ export const createPost = async (req, res) => {
         }
 
         // Get city from the logged-in user's profile
+        // Admin posts use 'global' as city to be visible to everyone
         let city;
-        if (req.user.role === 'user') {
+        if (req.user.role === 'admin') {
+            city = 'global';
+        } else if (req.user.role === 'user') {
             city = req.user.city;
         } else if (req.user.role === 'ngo' || req.user.role === 'corporate') {
             city = req.user.address?.city;
@@ -84,30 +87,40 @@ export const getPosts = async (req, res) => {
         const skip = (page - 1) * limit;
         const { category } = req.query;
 
-        // Get the user's city
-        let userCity;
-        if (req.user.role === 'user') {
-            userCity = req.user.city;
-        } else if (req.user.role === 'ngo' || req.user.role === 'corporate') {
-            userCity = req.user.address?.city;
-        }
+        // Build query object
+        const query = {};
+        
+        // Admins can see all posts, others see posts from their city + global posts
+        if (req.user.role !== 'admin') {
+            // Get the user's city
+            let userCity;
+            if (req.user.role === 'user') {
+                userCity = req.user.city;
+            } else if (req.user.role === 'ngo' || req.user.role === 'corporate') {
+                userCity = req.user.address?.city;
+            }
 
-        if (!userCity) {
-            return res.status(400).json({ 
-                message: 'User city information is required to view posts' 
-            });
-        }
+            if (!userCity) {
+                return res.status(400).json({ 
+                    message: 'User city information is required to view posts' 
+                });
+            }
 
-        // Build query object - filter by user's city (case-insensitive)
-        const query = { 
-            city: new RegExp(`^${userCity.trim()}$`, 'i') 
-        };
+            // Filter by user's city OR global posts (admin posts)
+            query.$or = [
+                { city: new RegExp(`^${userCity.trim()}$`, 'i') },
+                { city: 'global' }
+            ];
+            console.log('User city:', userCity);
+        } else {
+            console.log('Admin user - showing all posts');
+        }
+        
         if (category && category !== 'all') {
             query.category = category;
         }
 
-        console.log('User city:', userCity);
-        console.log('Query:', query);
+        console.log('Query:', JSON.stringify(query, null, 2));
 
         const posts = await Post.find(query)
             .sort({ createdAt: -1 })
@@ -120,7 +133,7 @@ export const getPosts = async (req, res) => {
         const total = await Post.countDocuments(query);
         
         console.log('Posts found:', posts.length);
-        console.log('Total posts in city:', total);
+        console.log('Total posts:', total);
         
         res.json({
             posts,

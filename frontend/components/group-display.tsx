@@ -168,7 +168,7 @@ export function GroupCard({ group, onJoin, onView }: GroupCardProps) {
                         )}
                     </div>
                     <p className="text-sm text-gray-600 flex items-center gap-1 mb-2">
-                        <span>by {group.creator.name}</span>
+                        <span>by {group.creator?.name || 'Deleted User'}</span>
                         <span className="text-gray-400">•</span>
                         <span>{format(new Date(group.createdAt), 'MMM d, yyyy')}</span>
                     </p>

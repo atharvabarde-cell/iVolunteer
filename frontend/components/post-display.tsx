@@ -202,22 +202,22 @@ export function PostDisplay({ post, searchText }: PostDisplayWithSearchProps) {
                     <div className="flex items-center gap-3">
                         <div className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-white shadow-md">
                             <Image
-                                src={post.user.profilePicture || '/placeholder-user.jpg'}
-                                alt={post.user.name}
+                                src={post.user?.profilePicture || '/placeholder-user.jpg'}
+                                alt={post.user?.name || 'Deleted User'}
                                 fill
                                 className="object-cover"
                             />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-gray-900">{post.user.name}</h3>
+                                <h3 className="font-bold text-gray-900">{post.user?.name || 'Deleted User'}</h3>
                                 <User className="w-4 h-4 text-blue-500" />
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-500">
                                 <Clock className="w-4 h-4" />
                                 <time>
                                     {format(new Date(post.createdAt), 'MMM d, yyyy • h:mm a')}
-                                    {post.updatedAt !== post.createdAt && (
+                                    {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() && (
                                         <span className="ml-1 text-amber-600 font-medium">(edited)</span>
                                     )}
                                 </time>
@@ -225,7 +225,7 @@ export function PostDisplay({ post, searchText }: PostDisplayWithSearchProps) {
                         </div>
                     </div>
                     
-                    {user && user._id === post.user._id && (
+                    {user && post.user && user._id === post.user._id && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -380,8 +380,8 @@ export function PostDisplay({ post, searchText }: PostDisplayWithSearchProps) {
                                     <div key={comment._id} className="flex gap-3 group">
                                         <div className="relative w-8 h-8 rounded-full overflow-hidden shadow-sm">
                                             <Image
-                                                src={comment.user.profilePicture || '/placeholder-user.jpg'}
-                                                alt={comment.user.name}
+                                                src={comment.user?.profilePicture || '/placeholder-user.jpg'}
+                                                alt={comment.user?.name || 'Deleted User'}
                                                 fill
                                                 className="object-cover"
                                             />
@@ -390,7 +390,7 @@ export function PostDisplay({ post, searchText }: PostDisplayWithSearchProps) {
                                             <div className="bg-gray-100 rounded-2xl px-4 py-3 relative">
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span className="font-semibold text-gray-900 text-sm">
-                                                        {comment.user.name}
+                                                        {comment.user?.name || 'Deleted User'}
                                                     </span>
                                                     <time className="text-xs text-gray-500">
                                                         {format(new Date(comment.createdAt), 'MMM d • h:mm a')}
@@ -399,7 +399,7 @@ export function PostDisplay({ post, searchText }: PostDisplayWithSearchProps) {
                                                 <p className="text-gray-800 leading-relaxed">
                                                     {comment.content}
                                                 </p>
-                                                {user && (user._id === comment.user._id || user._id === post.user._id) && (
+                                                {user && comment.user && (user._id === comment.user._id || user._id === post.user?._id) && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"

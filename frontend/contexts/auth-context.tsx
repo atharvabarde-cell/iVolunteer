@@ -18,6 +18,8 @@ export interface User {
   totalRewards: number;
   completedEvents: string[];
   createdAt: string;
+  profilePicture?: string;  // Add profile picture field
+  cloudinaryPublicId?: string;  // Add cloudinary ID field
 }
 
 interface AuthContextType {
@@ -125,6 +127,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         totalRewards: 0,
         completedEvents: [],
         createdAt: new Date().toISOString(),
+        profilePicture: (data.user as any).profilePicture || undefined,
+        cloudinaryPublicId: (data.user as any).cloudinaryPublicId || undefined,
       };
 
       console.log("Mapped user object with coins:", mappedUser.coins);
@@ -217,11 +221,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         name: data.user.name,
         role: data.user.role,
         points: 0,
-        coins: data.user.coins || 0, // Use coins from response
+        coins: data.user.coins || 0,
         volunteeredHours: 0,
         totalRewards: 0,
         completedEvents: [],
         createdAt: new Date().toISOString(),
+        profilePicture: (data.user as any).profilePicture || undefined,
+        cloudinaryPublicId: (data.user as any).cloudinaryPublicId || undefined,
       };
 
       setUser(mappedUser);

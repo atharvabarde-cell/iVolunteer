@@ -89,14 +89,16 @@ const postSchema = new mongoose.Schema({
         default: Date.now
     },
     updatedAt: {
-        type: Date,
-        default: Date.now
+        type: Date
     }
 });
 
-// Update the updatedAt timestamp on save
+// Update the updatedAt timestamp only when modifying existing posts
 postSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
+    // Only set updatedAt if this is not a new document
+    if (!this.isNew) {
+        this.updatedAt = Date.now();
+    }
     next();
 });
 
