@@ -7,6 +7,7 @@ const createEvent = async (data, organizationId, organizationName) => {
     title,
     description,
     location,
+    detailedAddress,
     date,
     time,
     duration,
@@ -17,6 +18,8 @@ const createEvent = async (data, organizationId, organizationName) => {
     sponsorshipRequired,
     sponsorshipAmount,
     eventStatus,
+    eventType = "community",
+    image,
     images = [],
   } = data;
 
@@ -26,9 +29,11 @@ const createEvent = async (data, organizationId, organizationName) => {
     organization: organizationName,
     organizationId,
     location,
+    detailedAddress,
     date,
     time,
     eventStatus,
+    eventType,
     duration,
     category,
     maxParticipants,
@@ -36,6 +41,7 @@ const createEvent = async (data, organizationId, organizationName) => {
     requirements,
     sponsorshipRequired,
     sponsorshipAmount,
+    image,
     images,
     status: "pending"
   });
@@ -52,18 +58,31 @@ const createEvent = async (data, organizationId, organizationName) => {
 
 
 // Get all published events with participants populated and NGO details
-const getAllPublishedEvents = async () => {
+// Optionally filtered by location (city-based filtering)
+const getAllPublishedEvents = async (locationFilter = null) => {
+  // Build the base query
+  const baseQuery = { status: "approved" };
+  
+  // Add location filter if provided
+  const query = locationFilter 
+    ? { ...baseQuery, ...locationFilter }
+    : baseQuery;
+
+  console.log('Event query:', JSON.stringify(query, null, 2));
+
   // First, check for any events that still have the legacy participants field as number
   const eventsToMigrate = await Event.find({
-    status: "approved",
+    ...query,
     participants: { $type: "number" }
   });
   
   // Get all approved events with populated participants and NGO details
-  const events = await Event.find({ status: "approved" })
+  const events = await Event.find(query)
     .populate('participants', '_id name email')
     .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
     .sort({ date: 1 });
+  
+  console.log('Events found:', events.length);
   
   if (eventsToMigrate.length > 0) {
     console.log(`Auto-migrating ${eventsToMigrate.length} events with legacy participants field`);
@@ -81,7 +100,7 @@ const getAllPublishedEvents = async () => {
     }
     
     // Return fresh data after migration with populated participants and NGO details
-    return await Event.find({ status: "approved" })
+    return await Event.find(query)
       .populate('participants', '_id name email')
       .populate('organizationId', 'name email organizationType websiteUrl yearEstablished contactNumber address ngoDescription focusAreas organizationSize')
       .sort({ date: 1 });
@@ -136,14 +155,27 @@ const getEventById = async (eventId) => {
 };
 
 // Update status (approve/reject)
-const updateEventStatus = async (eventId, status) => {
+const updateEventStatus = async (eventId, status, rejectionReason = null) => {
   if (!["approved", "rejected"].includes(status)) {
     throw new ApiError(400, "Invalid status value");
   }
 
+  // Prepare update data
+  const updateData = { status };
+  
+  // If rejecting, include rejection reason (if provided)
+  if (status === "rejected" && rejectionReason) {
+    updateData.rejectionReason = rejectionReason;
+  }
+  
+  // If approving, clear any previous rejection reason
+  if (status === "approved") {
+    updateData.rejectionReason = null;
+  }
+
   const event = await Event.findByIdAndUpdate(
     eventId,
-    { status },
+    updateData,
     { new: true }
   );
 
@@ -166,6 +198,11 @@ const participateInEvent = async (eventId, userId) => {
     
     if (!event) {
       throw new Error("Event not found");
+    }
+
+    // Check if user is the event creator
+    if (event.organizationId.toString() === userId.toString()) {
+      throw new Error("Event creators cannot participate in their own events");
     }
 
     if (event.status !== "approved") {

@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useGroups } from '@/contexts/groups-context';
 import { Header } from '@/components/header';
 import Footer from '@/components/Footer';
-import { Loader2, RefreshCcw, MessageSquare, Users, Sparkles } from 'lucide-react';
+import { Loader2, RefreshCcw, MessageSquare, Users, Sparkles, Globe } from 'lucide-react';
 import { format, subDays, isAfter } from 'date-fns';
 import { CreateGroup } from '@/components/create-group';
 import { GroupList } from '@/components/group-display';
@@ -86,6 +86,8 @@ export default function PostsPage() {
     const [activeTab, setActiveTab] = useState<'posts' | 'groups'>('posts');
     const [showCreateGroup, setShowCreateGroup] = useState(false);
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+    const [showAllPosts, setShowAllPosts] = useState(false);
+    
     // Filtering logic
     const filteredPosts = useMemo(() => {
         let filtered = posts;
@@ -114,7 +116,7 @@ export default function PostsPage() {
 
     const loadPosts = async (page = 1) => {
         try {
-            const response = await getPosts(page);
+            const response = await getPosts(page, showAllPosts);
             setHasMore(response.currentPage < response.totalPages);
             setCurrentPage(page);
         } catch (error) {
@@ -132,13 +134,17 @@ export default function PostsPage() {
         setIsRefreshing(false);
     };
 
+    const toggleShowAll = async () => {
+        setShowAllPosts(!showAllPosts);
+    };
+
     useEffect(() => {
         if (activeTab === 'posts') {
             loadPosts();
         } else {
             getGroups();
         }
-    }, [activeTab]);
+    }, [activeTab, showAllPosts]);
 
     if (error) {
         return (
@@ -244,7 +250,7 @@ export default function PostsPage() {
                 </section>
 
                 {/* Refresh Button */}
-                <div className="flex justify-center mb-8">
+                <div className="flex justify-center gap-3 mb-8">
                     <Button
                         variant="outline"
                         size="sm"
@@ -255,6 +261,23 @@ export default function PostsPage() {
                         <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                         Refresh {activeTab === 'posts' ? 'Posts' : 'Groups'}
                     </Button>
+                    
+                    {/* Show All Toggle - Only for Posts and non-admin users */}
+                    {activeTab === 'posts' && user && user.role !== 'admin' && (
+                        <Button
+                            variant={showAllPosts ? "default" : "outline"}
+                            size="sm"
+                            onClick={toggleShowAll}
+                            className={`flex items-center gap-2 transition-all duration-300 ${
+                                showAllPosts 
+                                    ? 'bg-gradient-to-r from-primary to-emerald-600 text-white hover:from-primary/90 hover:to-emerald-600/90' 
+                                    : 'bg-white/80 backdrop-blur-sm border-primary/20 hover:bg-primary/5'
+                            }`}
+                        >
+                            <Globe className="w-4 h-4" />
+                            {showAllPosts ? 'Showing All Posts' : 'Show All Posts'}
+                        </Button>
+                    )}
                 </div>
                 
                 {/* Create Post/Group Section */}

@@ -23,6 +23,7 @@ import {
   Phone,
   Mail,
   MapPinIcon,
+  Video,
 } from "lucide-react";
 import { Header } from "@/components/header";
 
@@ -62,6 +63,8 @@ const EventDetailsPage: React.FC = () => {
         const responseData = response.data as any;
         if (responseData.success && responseData.event) {
           console.log('Event fetched successfully:', responseData.event);
+          console.log('Event image:', responseData.event.image);
+          console.log('Event time:', responseData.event.time);
           console.log('NGO Details:', responseData.event.organizationId);
           setEvent(responseData.event);
           return;
@@ -81,6 +84,8 @@ const EventDetailsPage: React.FC = () => {
         
         if (foundEvent) {
           console.log('Event found in all events:', foundEvent);
+          console.log('Event image:', foundEvent.image);
+          console.log('Event time:', foundEvent.time);
           setEvent(foundEvent);
         } else {
           throw new Error("Event not found");
@@ -211,6 +216,11 @@ const EventDetailsPage: React.FC = () => {
   const currentParticipants = Array.isArray(event.participants) ? event.participants.length : 0;
   const maxParticipants = event.maxParticipants || Infinity;
 
+  // Check if current user is the event creator
+  const isEventCreator = user && event.organizationId && (
+    (typeof event.organizationId === 'object' ? event.organizationId._id : event.organizationId) === user._id
+  );
+
   return (
     <>
       <Header />
@@ -273,18 +283,153 @@ const EventDetailsPage: React.FC = () => {
                 </p>
               </div>
 
+              {/* Event Details Grid */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-6">Event Details</h2>
+                
+                {/* Event Type */}
+                {event.eventType && (
+                  <div className="mb-6 pb-6 border-b border-gray-100">
+                    <div className="flex items-start space-x-3">
+                      {event.eventType === 'virtual' ? (
+                        <Video className="h-5 w-5 text-blue-600 mt-1" />
+                      ) : event.eventType === 'in-person' ? (
+                        <Building className="h-5 w-5 text-emerald-600 mt-1" />
+                      ) : (
+                        <Globe className="h-5 w-5 text-purple-600 mt-1" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Event Type</p>
+                        <div className="mt-1">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
+                            event.eventType === 'virtual' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : event.eventType === 'in-person'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {event.eventType === 'virtual' && <Video className="w-4 h-4 mr-1" />}
+                            {event.eventType === 'in-person' && <Building className="w-4 h-4 mr-1" />}
+                            {event.eventType === 'community' && <Globe className="w-4 h-4 mr-1" />}
+                            {event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1).replace('-', ' ')} Event
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Date & Time */}
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-3">
+                      <Calendar className="h-5 w-5 text-blue-600 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Date</p>
+                        <p className="text-sm text-gray-600">
+                          {event.date ? new Date(event.date).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          }) : "Date not specified"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Clock className="h-5 w-5 text-blue-600 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Time</p>
+                        <p className="text-sm text-gray-600">
+                          {event.time ? (() => {
+                            // Convert 24-hour format time string (e.g., "14:30") to 12-hour with AM/PM
+                            const [hours, minutes] = event.time.split(':').map(Number);
+                            const period = hours >= 12 ? 'PM' : 'AM';
+                            const displayHours = hours % 12 || 12;
+                            return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+                          })() : (event.date ? new Date(event.date).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          }) : "Time not specified")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Location & Category */}
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-3">
+                      <MapPin className="h-5 w-5 text-red-600 mt-1" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">Location</p>
+                        <p className="text-sm text-gray-600">
+                          {event.location || "Location not specified"}
+                        </p>
+                        {event.detailedAddress && (
+                          <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                            {event.detailedAddress}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Tag className="h-5 w-5 text-purple-600 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Category</p>
+                        <p className="text-sm text-gray-600">
+                          {event.category || "General"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Duration & Points */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-100">
+                  {event.duration && (
+                    <div className="flex items-start space-x-3">
+                      <Clock className="h-5 w-5 text-orange-600 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Duration</p>
+                        <p className="text-sm text-gray-600">{event.duration} hours</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {event.pointsOffered && (
+                    <div className="flex items-start space-x-3">
+                      <Award className="h-5 w-5 text-yellow-600 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Points Offered</p>
+                        <p className="text-sm text-gray-600">{event.pointsOffered} points</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Requirements */}
+              {event.requirements && Array.isArray(event.requirements) && event.requirements.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-4">Requirements</h2>
+                  <ul className="space-y-2">
+                    {event.requirements.map((req: string, index: number) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <Target className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+                        <span className="text-gray-600 text-sm">{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* NGO Information */}
               {event.organizationId && typeof event.organizationId === 'object' && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                   <h2 className="text-2xl font-semibold text-gray-900 mb-6">About the Organization</h2>
-                  
-                  {/* Debug info - remove in production */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
-                      <strong>Debug:</strong> organizationId type: {typeof event.organizationId}, 
-                      keys: {event.organizationId && typeof event.organizationId === 'object' ? Object.keys(event.organizationId).join(', ') : 'N/A'}
-                    </div>
-                  )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Organization Basic Info */}
@@ -460,104 +605,6 @@ const EventDetailsPage: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              {/* Event Details Grid */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-6">Event Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Date & Time */}
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <Calendar className="h-5 w-5 text-blue-600 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Date</p>
-                        <p className="text-sm text-gray-600">
-                          {event.date ? new Date(event.date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          }) : "Date not specified"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start space-x-3">
-                      <Clock className="h-5 w-5 text-blue-600 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Time</p>
-                        <p className="text-sm text-gray-600">
-                          {event.time || (event.date ? new Date(event.date).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          }) : "Time not specified")}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Location & Category */}
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <MapPin className="h-5 w-5 text-red-600 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Location</p>
-                        <p className="text-sm text-gray-600">
-                          {event.location || "Location not specified"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start space-x-3">
-                      <Tag className="h-5 w-5 text-purple-600 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Category</p>
-                        <p className="text-sm text-gray-600">
-                          {event.category || "General"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Duration & Points */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-100">
-                  {event.duration && (
-                    <div className="flex items-start space-x-3">
-                      <Clock className="h-5 w-5 text-orange-600 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Duration</p>
-                        <p className="text-sm text-gray-600">{event.duration} hours</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {event.pointsOffered && (
-                    <div className="flex items-start space-x-3">
-                      <Award className="h-5 w-5 text-yellow-600 mt-1" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Points Offered</p>
-                        <p className="text-sm text-gray-600">{event.pointsOffered} points</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Requirements */}
-              {event.requirements && Array.isArray(event.requirements) && event.requirements.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-4">Requirements</h2>
-                  <ul className="space-y-2">
-                    {event.requirements.map((req: string, index: number) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <Target className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
-                        <span className="text-gray-600 text-sm">{req}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
 
             {/* Sidebar */}
@@ -594,7 +641,20 @@ const EventDetailsPage: React.FC = () => {
                 </div>
 
                 {/* Action Button */}
-                {participated ? (
+                {isEventCreator ? (
+                  <div className="space-y-3">
+                    <button
+                      disabled
+                      className="w-full bg-gray-100 text-gray-600 py-3 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                    >
+                      <Building className="h-4 w-4 mr-2" />
+                      You Created This Event
+                    </button>
+                    <p className="text-xs text-center text-gray-500">
+                      Event creators cannot participate in their own events
+                    </p>
+                  </div>
+                ) : participated ? (
                   <div className="space-y-3">
                     <button
                       disabled

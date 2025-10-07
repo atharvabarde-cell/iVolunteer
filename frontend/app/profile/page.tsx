@@ -112,6 +112,12 @@ export default function ProfilePage() {
             companyType: userData.companyType || "",
             industrySector: userData.industrySector || "",
             companyDescription: userData.companyDescription || "",
+            // Address fields (for NGO and Corporate)
+            addressStreet: userData.address?.street || "",
+            addressCity: userData.address?.city || "",
+            addressState: userData.address?.state || "",
+            addressZip: userData.address?.zip || "",
+            addressCountry: userData.address?.country || "India",
           });
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -390,9 +396,31 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       const token = localStorage.getItem("auth-token");
+      
+      // Prepare the data to send - format address fields for NGO and Corporate
+      const dataToSend = { ...formData };
+      
+      if (user.role === 'ngo' || user.role === 'corporate') {
+        // Convert flat address fields to nested address object
+        dataToSend.address = {
+          street: formData.addressStreet,
+          city: formData.addressCity,
+          state: formData.addressState,
+          zip: formData.addressZip,
+          country: formData.addressCountry,
+        };
+        
+        // Remove the flat address fields from the data
+        delete dataToSend.addressStreet;
+        delete dataToSend.addressCity;
+        delete dataToSend.addressState;
+        delete dataToSend.addressZip;
+        delete dataToSend.addressCountry;
+      }
+      
       const response = await axios.put(
         `${process.env.NEXT_PUBLIC_API_URL}/v1/auth/profile`,
-        formData,
+        dataToSend,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -506,10 +534,12 @@ export default function ProfilePage() {
                   <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md">
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </span>
-                  {user.city && (
+                  {/* Display city for volunteers or city from address for NGO/Corporate */}
+                  {((user.role === 'user' && user.city) || 
+                    ((user.role === 'ngo' || user.role === 'corporate') && user.address?.city)) && (
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
                       <MapPin className="w-3 h-3 mr-1" />
-                      {user.city}
+                      {user.role === 'user' ? user.city : user.address?.city}
                     </span>
                   )}
                 </div>
@@ -562,6 +592,11 @@ export default function ProfilePage() {
                           companyType: user.companyType || "",
                           industrySector: user.industrySector || "",
                           companyDescription: user.companyDescription || "",
+                          addressStreet: user.address?.street || "",
+                          addressCity: user.address?.city || "",
+                          addressState: user.address?.state || "",
+                          addressZip: user.address?.zip || "",
+                          addressCountry: user.address?.country || "India",
                         });
                       }}
                       variant="outline"
@@ -871,6 +906,110 @@ export default function ProfilePage() {
                         </p>
                       )}
                     </div>
+
+                    {/* Address Section for NGO */}
+                    <div>
+                      <h4 className="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-blue-600" />
+                        Organization Address
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="md:col-span-2">
+                          <Label htmlFor="addressStreet" className="text-sm font-medium text-gray-700">Street Address</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressStreet"
+                              name="addressStreet"
+                              value={formData.addressStreet}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter street address"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {user.address?.street || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="addressCity" className="text-sm font-medium text-gray-700">City</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressCity"
+                              name="addressCity"
+                              value={formData.addressCity}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter city"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {user.address?.city || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="addressState" className="text-sm font-medium text-gray-700">State</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressState"
+                              name="addressState"
+                              value={formData.addressState}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter state"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {user.address?.state || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="addressZip" className="text-sm font-medium text-gray-700">ZIP Code</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressZip"
+                              name="addressZip"
+                              value={formData.addressZip}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter ZIP code"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {user.address?.zip || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="addressCountry" className="text-sm font-medium text-gray-700">Country</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressCountry"
+                              name="addressCountry"
+                              value={formData.addressCountry}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter country"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <Globe className="w-4 h-4 text-gray-400" />
+                              {user.address?.country || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -976,6 +1115,110 @@ export default function ProfilePage() {
                           {user.companyDescription || "Not specified"}
                         </p>
                       )}
+                    </div>
+
+                    {/* Address Section for Corporate */}
+                    <div>
+                      <h4 className="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-blue-600" />
+                        Company Address
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="md:col-span-2">
+                          <Label htmlFor="addressStreet" className="text-sm font-medium text-gray-700">Street Address</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressStreet"
+                              name="addressStreet"
+                              value={formData.addressStreet}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter street address"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {user.address?.street || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="addressCity" className="text-sm font-medium text-gray-700">City</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressCity"
+                              name="addressCity"
+                              value={formData.addressCity}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter city"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {user.address?.city || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="addressState" className="text-sm font-medium text-gray-700">State</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressState"
+                              name="addressState"
+                              value={formData.addressState}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter state"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {user.address?.state || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="addressZip" className="text-sm font-medium text-gray-700">ZIP Code</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressZip"
+                              name="addressZip"
+                              value={formData.addressZip}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter ZIP code"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {user.address?.zip || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="addressCountry" className="text-sm font-medium text-gray-700">Country</Label>
+                          {isEditing ? (
+                            <Input
+                              id="addressCountry"
+                              name="addressCountry"
+                              value={formData.addressCountry}
+                              onChange={handleInputChange}
+                              className="mt-2"
+                              placeholder="Enter country"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-lg">
+                              <Globe className="w-4 h-4 text-gray-400" />
+                              {user.address?.country || "Not specified"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

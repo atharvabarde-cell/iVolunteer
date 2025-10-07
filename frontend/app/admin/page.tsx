@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { Navigation } from "@/components/navigation"
@@ -11,11 +11,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MapPin, Calendar, Clock, Users, Check, X, Shield } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useEvents } from "@/contexts/events-context"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 
 export default function AdminPanel() {
   const { user } = useAuth()
   const { events, approveEvent, rejectEvent } = useEvents()
   const router = useRouter()
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (!user || user.role !== "admin") {
@@ -36,7 +50,36 @@ export default function AdminPanel() {
   }
 
   const handleReject = (eventId: string) => {
-    rejectEvent(eventId)
+    setSelectedEventId(eventId)
+    setRejectionReason("")
+    setShowRejectDialog(true)
+  }
+
+  const handleRejectConfirm = async () => {
+    if (!selectedEventId) return
+    
+    if (!rejectionReason.trim()) {
+      alert("Please provide a reason for rejection")
+      return
+    }
+    
+    setIsSubmitting(true)
+    const success = await rejectEvent(selectedEventId, rejectionReason.trim())
+    setIsSubmitting(false)
+    
+    if (success) {
+      setShowRejectDialog(false)
+      setSelectedEventId(null)
+      setRejectionReason("")
+    } else {
+      alert("Failed to reject event. Please try again.")
+    }
+  }
+
+  const handleRejectCancel = () => {
+    setShowRejectDialog(false)
+    setSelectedEventId(null)
+    setRejectionReason("")
   }
 
   const getStatusColor = (status: string) => {
@@ -204,6 +247,53 @@ export default function AdminPanel() {
       </main>
 
       <Navigation />
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Event</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this event. This will be visible to the event organizer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Rejection Reason *</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="e.g., Event does not meet community guidelines, Incomplete event details, etc."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px]"
+                maxLength={500}
+                disabled={isSubmitting}
+              />
+              <p className="text-sm text-muted-foreground">
+                {rejectionReason.length}/500 characters
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleRejectCancel}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleRejectConfirm}
+              disabled={isSubmitting || !rejectionReason.trim()}
+            >
+              {isSubmitting ? "Rejecting..." : "Reject Event"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -85,13 +85,17 @@ export const getPosts = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        const { category } = req.query;
+        const { category, showAll } = req.query;
 
         // Build query object
         const query = {};
         
+        // Check if user wants to see all posts (showAll=true parameter)
+        const shouldShowAll = showAll === 'true';
+        
         // Admins can see all posts, others see posts from their city + global posts
-        if (req.user.role !== 'admin') {
+        // Unless showAll is explicitly requested
+        if (req.user.role !== 'admin' && !shouldShowAll) {
             // Get the user's city
             let userCity;
             if (req.user.role === 'user') {
@@ -112,8 +116,9 @@ export const getPosts = async (req, res) => {
                 { city: 'global' }
             ];
             console.log('User city:', userCity);
+            console.log('Filtered view - showing local + global posts');
         } else {
-            console.log('Admin user - showing all posts');
+            console.log(shouldShowAll ? 'Show all requested - showing all posts' : 'Admin user - showing all posts');
         }
         
         if (category && category !== 'all') {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useNGO } from "@/contexts/ngo-context";
@@ -11,8 +11,13 @@ import {
   DollarSign,
   CheckCircle,
   UserPlus,
+  Video,
+  Building,
+  Globe,
+  RefreshCcw,
 } from "lucide-react";
 import { Header } from "@/components/header";
+import { Button } from "@/components/ui/button";
 
 const AvailableEventsPage: React.FC = () => {
   const router = useRouter();
@@ -25,10 +30,40 @@ const AvailableEventsPage: React.FC = () => {
   const [participated, setParticipated] = useState<{ [key: string]: boolean }>(
     {}
   );
+  const [activeTab, setActiveTab] = useState<'virtual' | 'in-person' | 'community'>('virtual');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAllEvents, setShowAllEvents] = useState(false);
 
   useEffect(() => {
-    fetchAvailableEvents();
-  }, []);
+    fetchAvailableEvents(showAllEvents);
+  }, [showAllEvents]);
+
+  // Filter events based on active tab
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      const eventType = event.eventType?.toLowerCase() || 'community';
+      return eventType === activeTab;
+    });
+  }, [events, activeTab]);
+
+  // Count events by type
+  const eventCounts = useMemo(() => {
+    return {
+      virtual: events.filter(e => (e.eventType?.toLowerCase() || 'community') === 'virtual').length,
+      'in-person': events.filter(e => (e.eventType?.toLowerCase() || 'community') === 'in-person').length,
+      community: events.filter(e => (e.eventType?.toLowerCase() || 'community') === 'community').length,
+    };
+  }, [events]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchAvailableEvents(showAllEvents);
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const toggleShowAll = () => {
+    setShowAllEvents(!showAllEvents);
+  };
 
   const handleParticipate = async (eventId: string) => {
     setParticipating((prev) => ({ ...prev, [eventId]: true }));
@@ -88,67 +123,83 @@ const AvailableEventsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading events...</p>
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600 text-lg">Loading events...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-            <div className="text-red-600 text-4xl mb-2">⚠️</div>
-            <h2 className="text-red-800 text-xl font-semibold mb-2">Error</h2>
-            <p className="text-red-600">{error}</p>
-            <button
-              onClick={fetchAvailableEvents}
-              className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Try Again
-            </button>
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+          <div className="text-center">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+              <div className="text-red-600 text-4xl mb-2">⚠️</div>
+              <h2 className="text-red-800 text-xl font-semibold mb-2">Error</h2>
+              <p className="text-red-600">{error}</p>
+              <button
+                onClick={() => fetchAvailableEvents(showAllEvents)}
+                className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (!events || events.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 max-w-md">
-            <div className="text-gray-400 text-5xl mb-4">📅</div>
-            <h2 className="text-gray-600 text-xl font-semibold mb-2">
-              No Events Available
-            </h2>
-            <p className="text-gray-500">
-              There are currently no events available. Please check back later.
-            </p>
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+          <div className="text-center">
+            <div className="bg-white/80 backdrop-blur-sm border border-primary/10 rounded-2xl p-8 max-w-md shadow-lg">
+              <div className="text-gray-400 text-5xl mb-4">📅</div>
+              <h2 className="text-gray-600 text-xl font-semibold mb-2">
+                No Events Available
+              </h2>
+              <p className="text-gray-500">
+                There are currently no events available. Please check back later.
+              </p>
+              <Button
+                onClick={handleRefresh}
+                className="mt-4 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90"
+              >
+                <RefreshCcw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
             <div className="flex items-center justify-center mb-4">
-              <h1 className="text-4xl font-bold text-gray-900">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-emerald-600 bg-clip-text text-transparent">
                 Available Events
               </h1>
               <button
                 onClick={() => router.push("/volunteer/my-events")}
-                className="ml-6 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                className="ml-6 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 text-white px-6 py-2 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 text-sm font-medium"
               >
                 My Events
               </button>
@@ -159,9 +210,117 @@ const AvailableEventsPage: React.FC = () => {
             </p>
           </div>
 
+          {/* Tab Navigation */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-primary/10">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveTab('virtual')}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                    activeTab === 'virtual'
+                      ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-primary hover:bg-primary/5'
+                  }`}
+                >
+                  <Video className="w-4 h-4 inline mr-2" />
+                  Virtual
+                </button>
+                <button
+                  onClick={() => setActiveTab('in-person')}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                    activeTab === 'in-person'
+                      ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-primary hover:bg-primary/5'
+                  }`}
+                >
+                  <Building className="w-4 h-4 inline mr-2" />
+                  In-Person
+                </button>
+                <button
+                  onClick={() => setActiveTab('community')}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                    activeTab === 'community'
+                      ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-primary hover:bg-primary/5'
+                  }`}
+                >
+                  <Globe className="w-4 h-4 inline mr-2" />
+                  Community
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Section */}
+          <section className="mb-12 flex gap-4 justify-center flex-wrap">
+            <div className="flex-1 max-w-xs flex flex-col items-center p-4 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg hover:scale-105 transition-transform duration-300">
+              <Video className="w-6 h-6 mb-2" />
+              <span className="text-xl font-bold">{eventCounts.virtual}</span>
+              <span className="text-sm uppercase">Virtual Events</span>
+            </div>
+            <div className="flex-1 max-w-xs flex flex-col items-center p-4 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg hover:scale-105 transition-transform duration-300">
+              <Building className="w-6 h-6 mb-2" />
+              <span className="text-xl font-bold">{eventCounts['in-person']}</span>
+              <span className="text-sm uppercase">In-Person Events</span>
+            </div>
+            <div className="flex-1 max-w-xs flex flex-col items-center p-4 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-lg hover:scale-105 transition-transform duration-300">
+              <Globe className="w-6 h-6 mb-2" />
+              <span className="text-xl font-bold">{eventCounts.community}</span>
+              <span className="text-sm uppercase">Community Events</span>
+            </div>
+          </section>
+
+          {/* Refresh Button */}
+          <div className="flex justify-center gap-3 mb-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={loading || isRefreshing}
+              className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border-primary/20 hover:bg-primary/5 transition-all duration-300"
+            >
+              <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh Events
+            </Button>
+            
+            {/* Show All Toggle - Only for non-admin users */}
+            {user && user.role !== 'admin' && (
+              <Button
+                variant={showAllEvents ? "default" : "outline"}
+                size="sm"
+                onClick={toggleShowAll}
+                className={`flex items-center gap-2 transition-all duration-300 ${
+                  showAllEvents 
+                    ? 'bg-gradient-to-r from-primary to-emerald-600 text-white hover:from-primary/90 hover:to-emerald-600/90' 
+                    : 'bg-white/80 backdrop-blur-sm border-primary/20 hover:bg-primary/5'
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                {showAllEvents ? 'Showing All Events' : 'Show All Events'}
+              </Button>
+            )}
+          </div>
+
+          {/* Empty State for Current Tab */}
+          {filteredEvents.length === 0 && (
+            <div className="text-center py-12">
+              <div className="bg-white/80 backdrop-blur-sm border border-primary/10 rounded-2xl p-8 max-w-md mx-auto shadow-lg">
+                <div className="text-gray-400 text-5xl mb-4">
+                  {activeTab === 'virtual' ? '💻' : activeTab === 'in-person' ? '🏢' : '🌍'}
+                </div>
+                <h2 className="text-gray-600 text-xl font-semibold mb-2">
+                  No {activeTab === 'virtual' ? 'Virtual' : activeTab === 'in-person' ? 'In-Person' : 'Community'} Events
+                </h2>
+                <p className="text-gray-500">
+                  There are currently no {activeTab} events available. Check other tabs or come back later.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Events Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event) => {
+            {filteredEvents.map((event) => {
               const progress = getProgressPercentage(event);
               const eventFull = isEventFull(event);
               const userParticipating = isUserParticipating(event);
@@ -178,6 +337,36 @@ const AvailableEventsPage: React.FC = () => {
                     eventFull ? "border-red-200" : "border-gray-100"
                   } ${userParticipating ? "ring-2 ring-green-200" : ""}`}
                 >
+                  {/* Event Image */}
+                  {event.image?.url && (
+                    <div className="relative h-48 w-full overflow-hidden">
+                      <img
+                        src={event.image.url}
+                        alt={event.image.caption || event.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      {/* Event Type Badge on Image */}
+                      {event.eventType && (
+                        <div className="absolute top-3 right-3">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-lg ${
+                            event.eventType === 'virtual' 
+                              ? 'bg-blue-500 text-white' 
+                              : event.eventType === 'in-person'
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-purple-500 text-white'
+                          }`}>
+                            {event.eventType === 'virtual' && '💻'}
+                            {event.eventType === 'in-person' && '🏢'}
+                            {event.eventType === 'community' && '🌍'}
+                            {' '}
+                            {event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1).replace('-', ' ')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Participation Badge */}
                   {userParticipating && (
                     <div className="bg-green-50 border-b border-green-200 px-4 py-2">

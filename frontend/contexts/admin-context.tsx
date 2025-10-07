@@ -118,7 +118,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     try {
       await api.put(
         `/v1/event/status/${id}`,
-        { status: "rejected" },
+        { 
+          status: "rejected",
+          rejectionReason: reason || ""
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPendingEvents((prev) => prev.filter((e) => e._id !== id));

@@ -5,12 +5,27 @@ import {
 } from "../middlewares/auth.middleware.js";
 import { ngoEventController } from "../controllers/ngoEvent.controller.js";
 import { Event } from "../models/Event.js";
+import { upload } from "../config/cloudinary.js";
 
 const eventRouter = express.Router();
 
 eventRouter.post("/add-event", authMiddleware, ngoEventController.addEvent);
 eventRouter.get("/sponsorship", ngoEventController.getSponsorshipEvents);
-eventRouter.get("/all-event", ngoEventController.getAllPublishedEvents);
+// Events are now filtered by city - requires authentication
+eventRouter.get("/all-event", authMiddleware, ngoEventController.getAllPublishedEvents);
+// Upload event image
+eventRouter.post(
+  "/upload-event-image",
+  authMiddleware,
+  upload.single('eventImage'),
+  ngoEventController.uploadEventImage
+);
+// Get user's default location for event creation
+eventRouter.get(
+  "/default-location",
+  authMiddleware,
+  ngoEventController.getDefaultLocation
+);
 // Admin: get all pending events
 eventRouter.get(
   "/pending",
@@ -74,6 +89,12 @@ eventRouter.post(
 );
 
 eventRouter.get("/:eventId", ngoEventController.getEventById); // Get single event
+
+// Update event (for organization owners)
+eventRouter.put("/:eventId", authMiddleware, ngoEventController.updateEvent);
+
+// Delete event (for organization owners)
+eventRouter.delete("/:eventId", authMiddleware, ngoEventController.deleteEvent);
 
 // Participation routes
 eventRouter.post("/participate/:eventId", authMiddleware, ngoEventController.participateInEvent);

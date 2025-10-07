@@ -7,11 +7,12 @@ interface Opportunity {
   description: string;
   image: string;
   date: string;
-  location: string;
+  location: string; // Required field, pre-filled from organization city but can be changed
   participants: string;
   goal: string;
   category: string;
   featured: boolean;
+  eventType?: string; // Event type field
 }
 
 interface CorporateContextType {

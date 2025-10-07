@@ -188,18 +188,23 @@ const PendingEventsPage = () => {
                             <div className="space-y-3 animate-in fade-in duration-200">
                               <div className="relative">
                                 <textarea
-                                  placeholder="Please provide a reason for rejection..."
+                                  placeholder="Please provide a reason for rejection (minimum 10 characters)..."
                                   className="block w-full px-4 py-3 text-sm border border-red-200 rounded-xl placeholder-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 resize-none"
                                   rows={3}
                                   value={denialReasons[event._id] || ""}
                                   onChange={(e) =>
                                     setDenialReasons((prev) => ({ ...prev, [event._id]: e.target.value }))
                                   }
+                                  maxLength={500}
                                   autoFocus
                                 />
                                 <div className="absolute top-2 right-2">
-                                  <span className={`text-xs ${denialReasons[event._id]?.length > 10 ? 'text-green-500' : 'text-red-400'}`}>
-                                    {denialReasons[event._id]?.length || 0}/10
+                                  <span className={`text-xs ${
+                                    (denialReasons[event._id]?.length || 0) >= 10 
+                                      ? 'text-green-500' 
+                                      : 'text-red-400'
+                                  }`}>
+                                    {denialReasons[event._id]?.length || 0}/500
                                   </span>
                                 </div>
                               </div>
