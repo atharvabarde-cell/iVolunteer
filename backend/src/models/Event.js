@@ -124,6 +124,13 @@ const eventSchema = new mongoose.Schema(
       min: [0, "Points cannot be negative"],
       default: 50,
     },
+    scoringRule: {
+      basePoints: { type: Number, default: 0 },
+      difficultyMultiplier: { type: Number, default: 1 },
+      durationFactor: { type: Number, default: 1 },
+      totalPoints: { type: Number, default: 0 }, // pre-calculated final value
+    },
+
     applications: [
       {
         type: mongoose.Schema.Types.ObjectId,

@@ -26,12 +26,9 @@ type EventFormData = {
   duration: number;
   category: string;
   maxParticipants: number;
-  pointsOffered: number;
   requirements: string;
   sponsorshipRequired: boolean;
   sponsorshipAmount: number;
-  imageUrl: string;
-  imageCaption: string;
   eventStatus: string;
 };
 
@@ -45,7 +42,6 @@ const CreateEventPage = () => {
     watch,
   } = useForm<EventFormData>({
     defaultValues: {
-      pointsOffered: 50,
       sponsorshipRequired: true,
       sponsorshipAmount: 0,
       duration: 3,
@@ -68,41 +64,37 @@ const CreateEventPage = () => {
     }
   };
 
-  const onSubmit = async (data: EventFormData) => {
-    try {
-      // Format the data to match the API structure
-      const formattedData = {
-        title: data.title,
-        description: data.description,
-        location: data.location,
-        date: new Date(`${data.date}T${data.time}`).toISOString(),
-        time: data.time,
-        duration: Number(data.duration),
-        category: data.category,
-        maxParticipants: Number(data.maxParticipants),
-        pointsOffered: Number(data.pointsOffered),
-        requirements: requirementInputs.filter((req) => req.trim() !== ""),
-        sponsorshipRequired: data.sponsorshipRequired,
-        participants: [],
-        sponsorshipAmount: data.sponsorshipRequired
-          ? Number(data.sponsorshipAmount)
-          : 0,
-        image: {
-          url: data.imageUrl,
-          caption: data.imageCaption || "Event Image",
-        },
-        eventStatus: data.eventStatus,
-      };
+const onSubmit = async (data: EventFormData) => {
+  try {
+    const formattedData = {
+      title: data.title,
+      description: data.description,
+      location: data.location,
+      date: new Date(`${data.date}T${data.time}`).toISOString(),
+      time: data.time,
+      duration: Number(data.duration),
+      category: data.category,
+      maxParticipants: Number(data.maxParticipants),
+      requirements: requirementInputs.filter((req) => req.trim() !== ""),
+      sponsorshipRequired: data.sponsorshipRequired,
+      sponsorshipAmount: data.sponsorshipRequired
+        ? Number(data.sponsorshipAmount)
+        : 0,
+      eventStatus: data.eventStatus,
+      participants: [],    // required by EventData
+      pointsOffered: 0,    // added default to satisfy TypeScript
+    };
 
-      await createEvent(formattedData);
-      setSuccessMessage("Event created successfully!");
-      reset(); // clear form after successful submission
-      setRequirementInputs([""]); // reset requirements
-    } catch (err) {
-      // Error is already handled in the context
-      console.error("Error in form submission:", err);
-    }
-  };
+    await createEvent(formattedData);
+    setSuccessMessage("Event created successfully!");
+    reset();
+    setRequirementInputs([""]);
+  } catch (err) {
+    console.error("Error in form submission:", err);
+  }
+};
+
+
 
   // Animation variants
   const containerVariants = {
@@ -305,9 +297,7 @@ const CreateEventPage = () => {
                     <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   </div>
                   {errors.date && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.date.message}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>
                   )}
                 </motion.div>
 
@@ -326,9 +316,7 @@ const CreateEventPage = () => {
                     <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   </div>
                   {errors.time && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.time.message}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.time.message}</p>
                   )}
                 </motion.div>
 
@@ -344,9 +332,7 @@ const CreateEventPage = () => {
                       step={1}
                       inputMode="numeric"
                       onKeyDown={(e) => {
-                        // blocks the minus, plus and exponent
-                        if (["-", "+", "e", "E"].includes(e.key))
-                          e.preventDefault();
+                        if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault();
                       }}
                       onInput={(e) => {
                         const el = e.currentTarget;
@@ -354,10 +340,7 @@ const CreateEventPage = () => {
                       }}
                       {...register("duration", {
                         required: "Duration is required",
-                        min: {
-                          value: 1,
-                          message: "Duration must be at least 1 hour",
-                        },
+                        min: { value: 1, message: "Duration must be at least 1 hour" },
                         valueAsNumber: true,
                       })}
                       className="w-full rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none pl-10 pr-4 py-2.5 shadow-sm"
@@ -367,9 +350,7 @@ const CreateEventPage = () => {
                     <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   </div>
                   {errors.duration && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.duration.message}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.duration.message}</p>
                   )}
                 </motion.div>
               </div>
@@ -378,9 +359,7 @@ const CreateEventPage = () => {
             {/* Event Details */}
             <section className="space-y-4">
               <header className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">
-                  Event details
-                </h3>
+                <h3 className="text-sm font-semibold text-gray-900">Event details</h3>
                 <div className="h-px bg-gray-200 flex-1 ml-4" />
               </header>
 
@@ -392,9 +371,7 @@ const CreateEventPage = () => {
                   </label>
                   <div className="relative">
                     <select
-                      {...register("category", {
-                        required: "Category is required",
-                      })}
+                      {...register("category", { required: "Category is required" })}
                       className="w-full rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none pl-10 pr-10 py-2.5 shadow-sm appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22><path fill=%22%236b7280%22 d=%22M5.5 7.5L10 12l4.5-4.5%22/></svg>')] bg-no-repeat bg-[length:16px] bg-[right_0.75rem_center]"
                     >
                       <option value="">Select a category</option>
@@ -407,9 +384,7 @@ const CreateEventPage = () => {
                     <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   </div>
                   {errors.category && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.category.message}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>
                   )}
                 </motion.div>
 
@@ -420,9 +395,7 @@ const CreateEventPage = () => {
                   </label>
                   <div className="relative">
                     <select
-                      {...register("eventStatus", {
-                        required: "Event status is required",
-                      })}
+                      {...register("eventStatus", { required: "Event status is required" })}
                       className="w-full rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none pl-10 pr-10 py-2.5 shadow-sm appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22><path fill=%22%236b7280%22 d=%22M5.5 7.5L10 12l4.5-4.5%22/></svg>')] bg-no-repeat bg-[length:16px] bg-[right_0.75rem_center]"
                     >
                       {eventStatuses.map((s) => (
@@ -434,9 +407,7 @@ const CreateEventPage = () => {
                     <Activity className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   </div>
                   {errors.eventStatus && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.eventStatus.message}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.eventStatus.message}</p>
                   )}
                 </motion.div>
 
@@ -450,10 +421,7 @@ const CreateEventPage = () => {
                       type="number"
                       {...register("maxParticipants", {
                         required: "Number of participants is required",
-                        min: {
-                          value: 1,
-                          message: "At least 1 participant is required",
-                        },
+                        min: { value: 1, message: "At least 1 participant is required" },
                       })}
                       className="w-full rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none pl-10 pr-4 py-2.5 shadow-sm"
                       placeholder="Maximum number of participants"
@@ -461,48 +429,8 @@ const CreateEventPage = () => {
                     <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   </div>
                   {errors.maxParticipants && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.maxParticipants.message}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.maxParticipants.message}</p>
                   )}
-                </motion.div>
-
-                {/* Points Offered */}
-                <motion.div variants={itemVariants}>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                    Points Offered
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      {...register("pointsOffered", {
-                        required: "Points offered is required",
-                        min: { value: 0, message: "Points cannot be negative" },
-                      })}
-                      className="w-full rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none pl-10 pr-4 py-2.5 shadow-sm"
-                      placeholder="Points offered to volunteers"
-                    />
-                    <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  </div>
-                  {errors.pointsOffered && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.pointsOffered.message}
-                    </p>
-                  )}
-                </motion.div>
-
-                {/* Image */}
-                {/* Single Image Upload */}
-                <motion.div variants={itemVariants} className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                    Event Image
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    {...register("imageFile" as any)}
-                    className="w-full rounded-xl border border-dashed border-gray-300 p-3 hover:border-gray-400 transition"
-                  />
                 </motion.div>
               </div>
             </section>
@@ -518,39 +446,34 @@ const CreateEventPage = () => {
 
               <motion.div variants={itemVariants}>
                 <div className="space-y-2">
-                  {requirementInputs.map((_, index) => (
+                  {requirementInputs.map((req, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <div className="relative flex-grow">
-                        <input
-                          type="text"
-                          value={requirementInputs[index]}
-                          onChange={(e) => {
-                            const newRequirements = [...requirementInputs];
-                            newRequirements[index] = e.target.value;
-                            setRequirementInputs(newRequirements);
-                          }}
-                          className="w-full rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none pl-10 pr-4 py-2.5 shadow-sm placeholder:text-gray-400"
-                          placeholder="Enter a requirement (e.g., Gloves, Trash Bags)"
-                        />
-                        <AlertCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      </div>
-                      {requirementInputs.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeRequirementInput(index)}
-                          className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition"
-                        >
-                          ×
-                        </button>
-                      )}
+                      <input
+                        type="text"
+                        value={req}
+                        onChange={(e) => {
+                          const newReqs = [...requirementInputs];
+                          newReqs[index] = e.target.value;
+                          setRequirementInputs(newReqs);
+                        }}
+                        className="flex-1 rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none px-3 py-2 shadow-sm"
+                        placeholder={`Requirement ${index + 1}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeRequirementInput(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        &times;
+                      </button>
                     </div>
                   ))}
                   <button
                     type="button"
                     onClick={addRequirementInput}
-                    className="inline-flex items-center text-blue-600 hover:text-blue-800 text-xs font-medium"
+                    className="text-blue-600 hover:underline text-sm"
                   >
-                    <PlusCircle className="w-3 h-3 mr-1" /> Add Requirement
+                    + Add requirement
                   </button>
                 </div>
               </motion.div>
@@ -565,77 +488,48 @@ const CreateEventPage = () => {
                 <div className="h-px bg-gray-200 flex-1 ml-4" />
               </header>
 
-              <motion.div variants={itemVariants} className="pt-1">
-                <label className="inline-flex items-center gap-2">
+              <motion.div variants={itemVariants}>
+                <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     {...register("sponsorshipRequired")}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">
-                    Sponsorship Required
-                  </span>
+                  Sponsorship Required
                 </label>
-              </motion.div>
 
-              {/* Sponsorship Amount - only show if sponsorship is required */}
-              {sponsorshipRequired && (
-                <motion.div
-                  variants={itemVariants}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                    Sponsorship Amount ($)
-                  </label>
-                  <div className="relative">
+                {sponsorshipRequired && (
+                  <div className="mt-2">
                     <input
                       type="number"
                       {...register("sponsorshipAmount", {
-                        min: { value: 0, message: "Amount cannot be negative" },
+                        required: "Sponsorship amount is required",
+                        min: { value: 0, message: "Cannot be negative" },
                       })}
-                      className="w-full rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none pl-10 pr-4 py-2.5 shadow-sm"
-                      placeholder="Enter sponsorship amount"
+                      placeholder="Sponsorship Amount"
+                      className="w-full rounded-xl border-gray-200 focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-400 focus:!outline-none px-3 py-2 shadow-sm"
                     />
-                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    {errors.sponsorshipAmount && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.sponsorshipAmount.message}
+                      </p>
+                    )}
                   </div>
-                  {errors.sponsorshipAmount && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.sponsorshipAmount.message}
-                    </p>
-                  )}
-                </motion.div>
-              )}
+                )}
+              </motion.div>
             </section>
 
             {/* Submit */}
-            <motion.div
-              variants={itemVariants}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="pt-2"
-            >
+            <motion.div variants={itemVariants} className="text-right">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-3 rounded-xl font-medium shadow-md hover:from-blue-700 hover:to-indigo-800 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 text-white px-6 py-2.5 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50"
               >
-                {loading ? "Creating Event..." : "Create Event"}
+                Create Event
               </button>
             </motion.div>
           </motion.form>
         </div>
-
-        {/* Footnote */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="mt-4 text-center text-gray-600 text-sm"
-        >
-          <p>Your event will be reviewed and published within 24 hours</p>
-        </motion.div>
       </motion.div>
     </div>
   );

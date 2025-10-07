@@ -45,14 +45,17 @@ type FormValues = {
   companySize?: string;
   companyDescription?: string;
   csrFocusAreas?: string[];
+  otp?: string;
 };
 
 export default function AuthPage() {
-  const { signup, login } = useAuth();
+  const { signup, login, verifyOtp } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [emailForOtp, setEmailForOtp] = useState("");
 
   const {
     register,
@@ -75,7 +78,7 @@ export default function AuthPage() {
 
   const onSubmit = async (data: FormValues) => {
     if (tab === "signup") {
-      // Prepare signup data including NGO-specific fields
+      // Signup logic stays the same
       const signupData = {
         name: data.name!,
         email: data.email,
@@ -84,43 +87,66 @@ export default function AuthPage() {
         ...(data.role === "ngo" && {
           organizationType: data.organizationType,
           websiteUrl: data.websiteUrl,
-          yearEstablished: data.yearEstablished ? Number(data.yearEstablished) : undefined,
+          yearEstablished: data.yearEstablished
+            ? Number(data.yearEstablished)
+            : undefined,
           contactNumber: data.contactNumber,
           address: data.address,
           ngoDescription: data.ngoDescription,
           focusAreas: data.focusAreas || [],
-          organizationSize: data.organizationSize
+          organizationSize: data.organizationSize,
         }),
         ...(data.role === "corporate" && {
           companyType: data.companyType,
           industrySector: data.industrySector,
           companySize: data.companySize,
           websiteUrl: data.websiteUrl,
-          yearEstablished: data.yearEstablished ? Number(data.yearEstablished) : undefined,
+          yearEstablished: data.yearEstablished
+            ? Number(data.yearEstablished)
+            : undefined,
           contactNumber: data.contactNumber,
           address: data.address,
           companyDescription: data.companyDescription,
-          csrFocusAreas: data.csrFocusAreas || []
-        })
+          csrFocusAreas: data.csrFocusAreas || [],
+        }),
       };
 
       const success = await signup(signupData);
       if (success) {
         toast.success("Account created successfully!");
-        toast.success(`Welcome to iVolunteer, ${data.name}! You've been awarded 50 coins as a welcome bonus!`);
         router.push("/");
       } else {
-        // Show descriptive error message based on context
-        toast.error(`Failed to create ${selectedRole === "ngo" ? "organization" : selectedRole === "corporate" ? "company" : "user"} account. Please check your information and try again.`);
+        toast.error("Signup failed. Please check your details and try again.");
       }
     } else {
-      const success = await login(data.email, data.password, data.role as any);
-      if (success) {
-        toast.success(`Welcome back! Successfully logged in as ${selectedRole === "ngo" ? "organization" : selectedRole === "corporate" ? "company" : selectedRole}.`);
-        router.push("/");
+      // Login with OTP
+      if (!otpSent) {
+        // Step 1: Request OTP
+        const success = await login(
+          data.email,
+          data.password,
+          data.role as any
+        );
+        if (success) {
+          setOtpSent(true);
+          setEmailForOtp(data.email);
+          toast.info(
+            "OTP sent to your email. Please enter it to complete login."
+          );
+        }
       } else {
-        // Show descriptive error message
-        toast.error(`Login failed for ${selectedRole}. Please verify your credentials and try again.`);
+        // Step 2: Verify OTP
+        if (!data.otp) {
+          toast.error("Please enter the OTP sent to your email.");
+          return;
+        }
+        const success = await verifyOtp(emailForOtp, data.otp);
+        if (success) {
+          toast.success("Login successful!");
+          router.push("/");
+        } else {
+          toast.error("Invalid OTP. Please try again.");
+        }
       }
     }
   };
@@ -239,6 +265,23 @@ export default function AuthPage() {
                 </div>
               )}
 
+              {/* OTP Input: Only show when login tab is active and OTP has been sent */}
+              {tab === "login" && otpSent && (
+                <div className="mt-4">
+                  <input
+                    type="text"
+                    placeholder="Enter OTP"
+                    {...register("otp", { required: "OTP is required" })}
+                    className="w-full px-4 py-2 border rounded-md"
+                  />
+                  {errors.otp && (
+                    <p className="text-red-500 text-sm mt-2">
+                      {errors.otp.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {errors.role && (
                 <p className="text-red-500 text-sm mt-2">
                   {errors.role.message}
@@ -250,13 +293,24 @@ export default function AuthPage() {
             {tab === "signup" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {selectedRole === "ngo" ? "Organization Name" : selectedRole === "corporate" ? "Company Name" : "Full Name"} <span className="text-red-500">*</span>
+                  {selectedRole === "ngo"
+                    ? "Organization Name"
+                    : selectedRole === "corporate"
+                    ? "Company Name"
+                    : "Full Name"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder={selectedRole === "ngo" ? "Enter your organization name" : selectedRole === "corporate" ? "Enter your company name" : "Enter your full name"}
+                    placeholder={
+                      selectedRole === "ngo"
+                        ? "Enter your organization name"
+                        : selectedRole === "corporate"
+                        ? "Enter your company name"
+                        : "Enter your full name"
+                    }
                     {...register("name", { required: "Name is required" })}
                     className={`w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
@@ -428,13 +482,17 @@ export default function AuthPage() {
                   </label>
                   <select
                     {...register("organizationType", {
-                      required: selectedRole === "ngo" ? "Organization type is required" : false
+                      required:
+                        selectedRole === "ngo"
+                          ? "Organization type is required"
+                          : false,
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.organizationType
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.organizationType
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white`}
                   >
                     <option value="">Select organization type</option>
@@ -455,7 +513,8 @@ export default function AuthPage() {
                 {/* Website or Social Media URL */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Website or Social Media URL <span className="text-gray-400">(optional)</span>
+                    Website or Social Media URL{" "}
+                    <span className="text-gray-400">(optional)</span>
                   </label>
                   <input
                     type="url"
@@ -463,14 +522,16 @@ export default function AuthPage() {
                     {...register("websiteUrl", {
                       pattern: {
                         value: /^https?:\/\/.+/,
-                        message: "Please enter a valid URL starting with http:// or https://"
-                      }
+                        message:
+                          "Please enter a valid URL starting with http:// or https://",
+                      },
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.websiteUrl
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.websiteUrl
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                   />
                   {errors.websiteUrl && (
@@ -484,7 +545,8 @@ export default function AuthPage() {
                   {/* Year Established */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Year Established <span className="text-gray-400">(optional)</span>
+                      Year Established{" "}
+                      <span className="text-gray-400">(optional)</span>
                     </label>
                     <input
                       type="number"
@@ -493,28 +555,31 @@ export default function AuthPage() {
                       max={new Date().getFullYear()}
                       {...register("yearEstablished", {
                         valueAsNumber: true,
-                        min: { 
-                          value: 1800, 
-                          message: "Year must be after 1800" 
+                        min: {
+                          value: 1800,
+                          message: "Year must be after 1800",
                         },
-                        max: { 
-                          value: new Date().getFullYear(), 
-                          message: "Year cannot be in the future" 
+                        max: {
+                          value: new Date().getFullYear(),
+                          message: "Year cannot be in the future",
                         },
                         validate: {
                           validYear: (value) => {
                             if (!value) return true; // Optional field
                             const currentYear = new Date().getFullYear();
-                            return (value >= 1800 && value <= currentYear) || 
-                              `Year must be between 1800 and ${currentYear}`;
-                          }
-                        }
+                            return (
+                              (value >= 1800 && value <= currentYear) ||
+                              `Year must be between 1800 and ${currentYear}`
+                            );
+                          },
+                        },
                       })}
                       className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                        ${errors.yearEstablished
-                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        ${
+                          errors.yearEstablished
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                         } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                     />
                     {errors.yearEstablished && (
@@ -533,58 +598,89 @@ export default function AuthPage() {
                       type="tel"
                       placeholder="9876543210 or 011-12345678"
                       {...register("contactNumber", {
-                        required: selectedRole === "ngo" ? "Contact number is required" : false,
+                        required:
+                          selectedRole === "ngo"
+                            ? "Contact number is required"
+                            : false,
                         validate: {
                           validPhone: (value) => {
                             if (!value && selectedRole !== "ngo") return true;
                             if (!value) return "Contact number is required";
-                            
+
                             // Remove all non-digits for validation
-                            const digitsOnly = value.replace(/\D/g, '');
-                            
+                            const digitsOnly = value.replace(/\D/g, "");
+
                             // Check for valid phone number patterns
                             // Mobile: 10 digits starting with 6-9 (Indian mobile)
                             // Landline: 8-11 digits (can start with area codes like 011, 022, etc.)
                             // International: 7-15 digits
-                            
-                            if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+
+                            if (
+                              digitsOnly.length < 7 ||
+                              digitsOnly.length > 15
+                            ) {
                               return "Contact number must be 7-15 digits long";
                             }
-                            
+
                             // Indian mobile number validation (10 digits starting with 6-9)
-                            if (digitsOnly.length === 10 && /^[6-9]/.test(digitsOnly)) {
+                            if (
+                              digitsOnly.length === 10 &&
+                              /^[6-9]/.test(digitsOnly)
+                            ) {
                               return true;
                             }
-                            
+
                             // Indian landline validation (area code + 7-8 digits)
-                            if (digitsOnly.length >= 10 && digitsOnly.length <= 11) {
+                            if (
+                              digitsOnly.length >= 10 &&
+                              digitsOnly.length <= 11
+                            ) {
                               // Common Indian area codes
-                              const areaCodes = ['011', '022', '033', '040', '044', '080', '020', '079', '0484', '0471'];
-                              const hasValidAreaCode = areaCodes.some(code => digitsOnly.startsWith(code));
+                              const areaCodes = [
+                                "011",
+                                "022",
+                                "033",
+                                "040",
+                                "044",
+                                "080",
+                                "020",
+                                "079",
+                                "0484",
+                                "0471",
+                              ];
+                              const hasValidAreaCode = areaCodes.some((code) =>
+                                digitsOnly.startsWith(code)
+                              );
                               if (hasValidAreaCode) {
                                 return true;
                               }
                             }
-                            
+
                             // International or other valid formats (7-15 digits)
-                            if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
+                            if (
+                              digitsOnly.length >= 7 &&
+                              digitsOnly.length <= 15
+                            ) {
                               return true;
                             }
-                            
+
                             return "Please enter a valid mobile number (10 digits) or landline number";
-                          }
-                        }
+                          },
+                        },
                       })}
                       onInput={(e) => {
                         // Allow numbers, spaces, hyphens, parentheses, and plus sign
                         const target = e.target as HTMLInputElement;
-                        target.value = target.value.replace(/[^0-9\s\-\(\)\+]/g, '').slice(0, 20);
+                        target.value = target.value
+                          .replace(/[^0-9\s\-\(\)\+]/g, "")
+                          .slice(0, 20);
                       }}
                       className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                        ${errors.contactNumber
-                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        ${
+                          errors.contactNumber
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                         } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                     />
                     {errors.contactNumber && (
@@ -605,13 +701,17 @@ export default function AuthPage() {
                       type="text"
                       placeholder="Street address"
                       {...register("address.street", {
-                        required: selectedRole === "ngo" ? "Street address is required" : false
+                        required:
+                          selectedRole === "ngo"
+                            ? "Street address is required"
+                            : false,
                       })}
                       className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                        ${errors.address?.street
-                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        ${
+                          errors.address?.street
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                         } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                     />
                     {errors.address?.street && (
@@ -624,32 +724,39 @@ export default function AuthPage() {
                         type="text"
                         placeholder="City"
                         {...register("address.city", {
-                          required: selectedRole === "ngo" ? "City is required" : false
+                          required:
+                            selectedRole === "ngo" ? "City is required" : false,
                         })}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${errors.address?.city
-                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          ${
+                            errors.address?.city
+                              ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                              : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                           } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                       />
                       <input
                         type="text"
                         placeholder="State"
                         {...register("address.state", {
-                          required: selectedRole === "ngo" ? "State is required" : false
+                          required:
+                            selectedRole === "ngo"
+                              ? "State is required"
+                              : false,
                         })}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${errors.address?.state
-                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          ${
+                            errors.address?.state
+                              ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                              : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                           } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                       />
                     </div>
                     {(errors.address?.city || errors.address?.state) && (
                       <p className="text-red-500 text-sm mt-1">
-                        {errors.address?.city?.message || errors.address?.state?.message}
+                        {errors.address?.city?.message ||
+                          errors.address?.state?.message}
                       </p>
                     )}
                     <div className="grid grid-cols-2 gap-3">
@@ -657,30 +764,35 @@ export default function AuthPage() {
                         type="text"
                         placeholder="ZIP Code"
                         {...register("address.zip", {
-                          required: selectedRole === "ngo" ? "ZIP code is required" : false,
+                          required:
+                            selectedRole === "ngo"
+                              ? "ZIP code is required"
+                              : false,
                           validate: {
                             validZip: (value) => {
                               if (!value && selectedRole !== "ngo") return true;
                               if (!value) return "ZIP code is required";
-                              
-                              const country = watch("address.country")?.toLowerCase();
-                              
+
+                              const country =
+                                watch("address.country")?.toLowerCase();
+
                               // For India, ZIP code should be numeric and 6 digits
                               if (country === "india" || !country) {
                                 if (!/^\d{6}$/.test(value)) {
                                   return "Indian PIN code must be 6 digits";
                                 }
                               }
-                              
+
                               return true;
-                            }
-                          }
+                            },
+                          },
                         })}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${errors.address?.zip
-                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          ${
+                            errors.address?.zip
+                              ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                              : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                           } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                       />
                       <input
@@ -688,19 +800,24 @@ export default function AuthPage() {
                         placeholder="Country"
                         defaultValue="India"
                         {...register("address.country", {
-                          required: selectedRole === "ngo" ? "Country is required" : false
+                          required:
+                            selectedRole === "ngo"
+                              ? "Country is required"
+                              : false,
                         })}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${errors.address?.country
-                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          ${
+                            errors.address?.country
+                              ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                              : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                           } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                       />
                     </div>
                     {(errors.address?.zip || errors.address?.country) && (
                       <p className="text-red-500 text-sm mt-1">
-                        {errors.address?.zip?.message || errors.address?.country?.message}
+                        {errors.address?.zip?.message ||
+                          errors.address?.country?.message}
                       </p>
                     )}
                   </div>
@@ -709,38 +826,47 @@ export default function AuthPage() {
                 {/* NGO Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Organization Description <span className="text-red-500">*</span>
+                    Organization Description{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     placeholder="Describe your organization's mission and activities..."
                     rows={4}
                     {...register("ngoDescription", {
-                      required: selectedRole === "ngo" ? "Organization description is required" : false,
-                      maxLength: { 
-                        value: 1000, 
-                        message: "Description cannot exceed 1000 characters" 
+                      required:
+                        selectedRole === "ngo"
+                          ? "Organization description is required"
+                          : false,
+                      maxLength: {
+                        value: 1000,
+                        message: "Description cannot exceed 1000 characters",
                       },
                       validate: {
                         wordCount: (value) => {
                           if (!value && selectedRole !== "ngo") return true;
-                          if (!value) return "Organization description is required";
-                          
+                          if (!value)
+                            return "Organization description is required";
+
                           // Count words by splitting on whitespace and filtering empty strings
-                          const words = value.trim().split(/\s+/).filter(word => word.length > 0);
-                          
+                          const words = value
+                            .trim()
+                            .split(/\s+/)
+                            .filter((word) => word.length > 0);
+
                           if (words.length < 10) {
                             return `Description must contain at least 10 words (currently ${words.length} words)`;
                           }
-                          
+
                           return true;
-                        }
-                      }
+                        },
+                      },
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.ngoDescription
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.ngoDescription
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none`}
                   />
                   {/* Word count indicator */}
@@ -754,8 +880,11 @@ export default function AuthPage() {
                       <p className="text-sm text-gray-500 ml-auto">
                         {(() => {
                           const description = watch("ngoDescription");
-                          if (!description) return '0 words';
-                          const words = description.trim().split(/\s+/).filter(word => word.length > 0);
+                          if (!description) return "0 words";
+                          const words = description
+                            .trim()
+                            .split(/\s+/)
+                            .filter((word) => word.length > 0);
                           return `${words.length} words`;
                         })()}
                       </p>
@@ -770,20 +899,36 @@ export default function AuthPage() {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      "environment", "education", "health", "poverty", "children", "elderly",
-                      "animal-welfare", "disaster-relief", "community-development", "women-empowerment", "skill-development", "other"
+                      "environment",
+                      "education",
+                      "health",
+                      "poverty",
+                      "children",
+                      "elderly",
+                      "animal-welfare",
+                      "disaster-relief",
+                      "community-development",
+                      "women-empowerment",
+                      "skill-development",
+                      "other",
                     ].map((area) => (
-                      <label key={area} className="flex items-center space-x-2 cursor-pointer">
+                      <label
+                        key={area}
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
                         <input
                           type="checkbox"
                           value={area}
                           {...register("focusAreas", {
-                            required: selectedRole === "ngo" ? "Please select at least one focus area" : false
+                            required:
+                              selectedRole === "ngo"
+                                ? "Please select at least one focus area"
+                                : false,
                           })}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
-                          {area.replace('-', ' ')}
+                          {area.replace("-", " ")}
                         </span>
                       </label>
                     ))}
@@ -802,13 +947,17 @@ export default function AuthPage() {
                   </label>
                   <select
                     {...register("organizationSize", {
-                      required: selectedRole === "ngo" ? "Organization size is required" : false
+                      required:
+                        selectedRole === "ngo"
+                          ? "Organization size is required"
+                          : false,
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.organizationSize
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.organizationSize
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white`}
                   >
                     <option value="">Select organization size</option>
@@ -837,21 +986,29 @@ export default function AuthPage() {
                   </label>
                   <select
                     {...register("companyType", {
-                      required: selectedRole === "corporate" ? "Company type is required" : false
+                      required:
+                        selectedRole === "corporate"
+                          ? "Company type is required"
+                          : false,
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.companyType
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.companyType
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white`}
                   >
                     <option value="">Select company type</option>
                     <option value="private-limited">Private Limited</option>
                     <option value="public-limited">Public Limited</option>
-                    <option value="llp">LLP (Limited Liability Partnership)</option>
+                    <option value="llp">
+                      LLP (Limited Liability Partnership)
+                    </option>
                     <option value="partnership">Partnership</option>
-                    <option value="sole-proprietorship">Sole Proprietorship</option>
+                    <option value="sole-proprietorship">
+                      Sole Proprietorship
+                    </option>
                     <option value="mnc">MNC (Multinational Corporation)</option>
                     <option value="startup">Startup</option>
                     <option value="other">Other</option>
@@ -870,13 +1027,17 @@ export default function AuthPage() {
                   </label>
                   <select
                     {...register("industrySector", {
-                      required: selectedRole === "corporate" ? "Industry sector is required" : false
+                      required:
+                        selectedRole === "corporate"
+                          ? "Industry sector is required"
+                          : false,
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.industrySector
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.industrySector
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white`}
                   >
                     <option value="">Select industry sector</option>
@@ -904,13 +1065,17 @@ export default function AuthPage() {
                   </label>
                   <select
                     {...register("companySize", {
-                      required: selectedRole === "corporate" ? "Company size is required" : false
+                      required:
+                        selectedRole === "corporate"
+                          ? "Company size is required"
+                          : false,
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.companySize
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.companySize
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white`}
                   >
                     <option value="">Select company size</option>
@@ -930,7 +1095,8 @@ export default function AuthPage() {
                 {/* Website URL */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Company Website URL <span className="text-gray-400">(optional)</span>
+                    Company Website URL{" "}
+                    <span className="text-gray-400">(optional)</span>
                   </label>
                   <input
                     type="url"
@@ -938,14 +1104,16 @@ export default function AuthPage() {
                     {...register("websiteUrl", {
                       pattern: {
                         value: /^https?:\/\/.+/,
-                        message: "Please enter a valid URL starting with http:// or https://"
-                      }
+                        message:
+                          "Please enter a valid URL starting with http:// or https://",
+                      },
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.websiteUrl
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.websiteUrl
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                   />
                   {errors.websiteUrl && (
@@ -959,7 +1127,8 @@ export default function AuthPage() {
                   {/* Year Established */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Year Established <span className="text-gray-400">(optional)</span>
+                      Year Established{" "}
+                      <span className="text-gray-400">(optional)</span>
                     </label>
                     <input
                       type="number"
@@ -968,28 +1137,31 @@ export default function AuthPage() {
                       max={new Date().getFullYear()}
                       {...register("yearEstablished", {
                         valueAsNumber: true,
-                        min: { 
-                          value: 1800, 
-                          message: "Year must be after 1800" 
+                        min: {
+                          value: 1800,
+                          message: "Year must be after 1800",
                         },
-                        max: { 
-                          value: new Date().getFullYear(), 
-                          message: "Year cannot be in the future" 
+                        max: {
+                          value: new Date().getFullYear(),
+                          message: "Year cannot be in the future",
                         },
                         validate: {
                           validYear: (value) => {
                             if (!value) return true; // Optional field
                             const currentYear = new Date().getFullYear();
-                            return (value >= 1800 && value <= currentYear) || 
-                              `Year must be between 1800 and ${currentYear}`;
-                          }
-                        }
+                            return (
+                              (value >= 1800 && value <= currentYear) ||
+                              `Year must be between 1800 and ${currentYear}`
+                            );
+                          },
+                        },
                       })}
                       className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                        ${errors.yearEstablished
-                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        ${
+                          errors.yearEstablished
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                         } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                     />
                     {errors.yearEstablished && (
@@ -1008,53 +1180,85 @@ export default function AuthPage() {
                       type="tel"
                       placeholder="9876543210 or 011-12345678"
                       {...register("contactNumber", {
-                        required: selectedRole === "corporate" ? "Contact number is required" : false,
+                        required:
+                          selectedRole === "corporate"
+                            ? "Contact number is required"
+                            : false,
                         validate: {
                           validPhone: (value) => {
-                            if (!value && selectedRole !== "corporate") return true;
+                            if (!value && selectedRole !== "corporate")
+                              return true;
                             if (!value) return "Contact number is required";
-                            
+
                             // Remove all non-digits for validation
-                            const digitsOnly = value.replace(/\D/g, '');
-                            
+                            const digitsOnly = value.replace(/\D/g, "");
+
                             // Check for valid phone number patterns
-                            if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+                            if (
+                              digitsOnly.length < 7 ||
+                              digitsOnly.length > 15
+                            ) {
                               return "Contact number must be 7-15 digits long";
                             }
-                            
+
                             // Indian mobile number validation (10 digits starting with 6-9)
-                            if (digitsOnly.length === 10 && /^[6-9]/.test(digitsOnly)) {
+                            if (
+                              digitsOnly.length === 10 &&
+                              /^[6-9]/.test(digitsOnly)
+                            ) {
                               return true;
                             }
-                            
+
                             // Indian landline validation (area code + 7-8 digits)
-                            if (digitsOnly.length >= 10 && digitsOnly.length <= 11) {
-                              const areaCodes = ['011', '022', '033', '040', '044', '080', '020', '079', '0484', '0471'];
-                              const hasValidAreaCode = areaCodes.some(code => digitsOnly.startsWith(code));
+                            if (
+                              digitsOnly.length >= 10 &&
+                              digitsOnly.length <= 11
+                            ) {
+                              const areaCodes = [
+                                "011",
+                                "022",
+                                "033",
+                                "040",
+                                "044",
+                                "080",
+                                "020",
+                                "079",
+                                "0484",
+                                "0471",
+                              ];
+                              const hasValidAreaCode = areaCodes.some((code) =>
+                                digitsOnly.startsWith(code)
+                              );
                               if (hasValidAreaCode) {
                                 return true;
                               }
                             }
-                            
+
                             // International or other valid formats (7-15 digits)
-                            if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
+                            if (
+                              digitsOnly.length >= 7 &&
+                              digitsOnly.length <= 15
+                            ) {
                               return true;
                             }
-                            
+
                             return "Please enter a valid mobile number (10 digits) or landline number";
-                          }
-                        }
+                          },
+                        },
                       })}
                       onInput={(e) => {
                         // Allow numbers, spaces, hyphens, parentheses, and plus sign
                         const target = e.target as HTMLInputElement;
-                        target.value = target.value.replace(/[^0-9\s\-\(\)\+]/g, '').slice(0, 20);
+                        target.value = target.value
+                          .replace(/[^0-9\s\-\(\)\+]/g, "")
+                          .slice(0, 20);
                       }}
                       className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                        ${errors.contactNumber
-                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        ${
+                          errors.contactNumber
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                         } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                     />
                     {errors.contactNumber && (
@@ -1075,13 +1279,17 @@ export default function AuthPage() {
                       type="text"
                       placeholder="Street address"
                       {...register("address.street", {
-                        required: selectedRole === "corporate" ? "Street address is required" : false
+                        required:
+                          selectedRole === "corporate"
+                            ? "Street address is required"
+                            : false,
                       })}
                       className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                        ${errors.address?.street
-                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                        ${
+                          errors.address?.street
+                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                         } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                     />
                     {errors.address?.street && (
@@ -1094,32 +1302,41 @@ export default function AuthPage() {
                         type="text"
                         placeholder="City"
                         {...register("address.city", {
-                          required: selectedRole === "corporate" ? "City is required" : false
+                          required:
+                            selectedRole === "corporate"
+                              ? "City is required"
+                              : false,
                         })}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${errors.address?.city
-                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          ${
+                            errors.address?.city
+                              ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                              : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                           } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                       />
                       <input
                         type="text"
                         placeholder="State"
                         {...register("address.state", {
-                          required: selectedRole === "corporate" ? "State is required" : false
+                          required:
+                            selectedRole === "corporate"
+                              ? "State is required"
+                              : false,
                         })}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${errors.address?.state
-                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          ${
+                            errors.address?.state
+                              ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                              : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                           } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                       />
                     </div>
                     {(errors.address?.city || errors.address?.state) && (
                       <p className="text-red-500 text-sm mt-1">
-                        {errors.address?.city?.message || errors.address?.state?.message}
+                        {errors.address?.city?.message ||
+                          errors.address?.state?.message}
                       </p>
                     )}
                     <div className="grid grid-cols-2 gap-3">
@@ -1127,30 +1344,36 @@ export default function AuthPage() {
                         type="text"
                         placeholder="ZIP Code"
                         {...register("address.zip", {
-                          required: selectedRole === "corporate" ? "ZIP code is required" : false,
+                          required:
+                            selectedRole === "corporate"
+                              ? "ZIP code is required"
+                              : false,
                           validate: {
                             validZip: (value) => {
-                              if (!value && selectedRole !== "corporate") return true;
+                              if (!value && selectedRole !== "corporate")
+                                return true;
                               if (!value) return "ZIP code is required";
-                              
-                              const country = watch("address.country")?.toLowerCase();
-                              
+
+                              const country =
+                                watch("address.country")?.toLowerCase();
+
                               // For India, ZIP code should be numeric and 6 digits
                               if (country === "india" || !country) {
                                 if (!/^\d{6}$/.test(value)) {
                                   return "Indian PIN code must be 6 digits";
                                 }
                               }
-                              
+
                               return true;
-                            }
-                          }
+                            },
+                          },
                         })}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${errors.address?.zip
-                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          ${
+                            errors.address?.zip
+                              ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                              : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                           } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                       />
                       <input
@@ -1158,19 +1381,24 @@ export default function AuthPage() {
                         placeholder="Country"
                         defaultValue="India"
                         {...register("address.country", {
-                          required: selectedRole === "corporate" ? "Country is required" : false
+                          required:
+                            selectedRole === "corporate"
+                              ? "Country is required"
+                              : false,
                         })}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${errors.address?.country
-                            ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                            : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                          ${
+                            errors.address?.country
+                              ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                              : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                           } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
                       />
                     </div>
                     {(errors.address?.zip || errors.address?.country) && (
                       <p className="text-red-500 text-sm mt-1">
-                        {errors.address?.zip?.message || errors.address?.country?.message}
+                        {errors.address?.zip?.message ||
+                          errors.address?.country?.message}
                       </p>
                     )}
                   </div>
@@ -1185,32 +1413,40 @@ export default function AuthPage() {
                     placeholder="Describe your company's business activities and services..."
                     rows={4}
                     {...register("companyDescription", {
-                      required: selectedRole === "corporate" ? "Company description is required" : false,
-                      maxLength: { 
-                        value: 1000, 
-                        message: "Description cannot exceed 1000 characters" 
+                      required:
+                        selectedRole === "corporate"
+                          ? "Company description is required"
+                          : false,
+                      maxLength: {
+                        value: 1000,
+                        message: "Description cannot exceed 1000 characters",
                       },
                       validate: {
                         wordCount: (value) => {
-                          if (!value && selectedRole !== "corporate") return true;
+                          if (!value && selectedRole !== "corporate")
+                            return true;
                           if (!value) return "Company description is required";
-                          
+
                           // Count words by splitting on whitespace and filtering empty strings
-                          const words = value.trim().split(/\s+/).filter(word => word.length > 0);
-                          
+                          const words = value
+                            .trim()
+                            .split(/\s+/)
+                            .filter((word) => word.length > 0);
+
                           if (words.length < 10) {
                             return `Description must contain at least 10 words (currently ${words.length} words)`;
                           }
-                          
+
                           return true;
-                        }
-                      }
+                        },
+                      },
                     })}
                     className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-all
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      ${errors.companyDescription
-                        ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
-                        : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
+                      ${
+                        errors.companyDescription
+                          ? "border border-red-500 focus:!border-red-500 focus:!ring-red-500"
+                          : "border border-gray-300 dark:border-gray-600 focus:!border-blue-500 focus:!ring-blue-500"
                       } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none`}
                   />
                   {/* Word count indicator */}
@@ -1224,8 +1460,11 @@ export default function AuthPage() {
                       <p className="text-sm text-gray-500 ml-auto">
                         {(() => {
                           const description = watch("companyDescription");
-                          if (!description) return '0 words';
-                          const words = description.trim().split(/\s+/).filter(word => word.length > 0);
+                          if (!description) return "0 words";
+                          const words = description
+                            .trim()
+                            .split(/\s+/)
+                            .filter((word) => word.length > 0);
                           return `${words.length} words`;
                         })()}
                       </p>
@@ -1240,21 +1479,35 @@ export default function AuthPage() {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      "employee-volunteering", "community-development", "education-skill-development", 
-                      "environment-sustainability", "healthcare", "disaster-relief", 
-                      "women-empowerment", "rural-development", "other"
+                      "employee-volunteering",
+                      "community-development",
+                      "education-skill-development",
+                      "environment-sustainability",
+                      "healthcare",
+                      "disaster-relief",
+                      "women-empowerment",
+                      "rural-development",
+                      "other",
                     ].map((area) => (
-                      <label key={area} className="flex items-center space-x-2 cursor-pointer">
+                      <label
+                        key={area}
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
                         <input
                           type="checkbox"
                           value={area}
                           {...register("csrFocusAreas", {
-                            required: selectedRole === "corporate" ? "Please select at least one CSR focus area" : false
+                            required:
+                              selectedRole === "corporate"
+                                ? "Please select at least one CSR focus area"
+                                : false,
                           })}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
-                          {area.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {area
+                            .replace("-", " ")
+                            .replace(/\b\w/g, (l) => l.toUpperCase())}
                         </span>
                       </label>
                     ))}

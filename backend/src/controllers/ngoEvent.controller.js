@@ -163,8 +163,7 @@ const getPendingEvents = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, events });
 });
 
-// NGO: Request to end event
-// Request event completion (by NGO)
+
 // NGO submits completion proof
 const requestCompletion = asyncHandler(async (req, res) => {
   const { eventId } = req.params;
@@ -270,6 +269,26 @@ const getCompletedEventsByNgo = asyncHandler(async (req, res) => {
   });
 });
 
+const approveEventWithScoring = asyncHandler(async (req, res) => {
+  // admin only (ensure auth + role check in route/middleware)
+  const { eventId } = req.params;
+  const { baseCategory, difficulty, hoursWorked } = req.body;
+
+  // allow baseCategory to be category string or numeric basePoints
+  const event = await ngoEventService.approveEventWithScoring(
+    eventId,
+    baseCategory,   // string key like 'small'|'medium'|'highImpact'|'longTerm' OR numeric basePoints
+    difficulty,     // 'easy'|'moderate'|'challenging'|'extreme' OR numeric multiplier
+    hoursWorked     // number of hours (can be admin-approved hours)
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Event approved and scoring rule applied successfully.",
+    event,
+  });
+});
+
 
 
 
@@ -290,4 +309,5 @@ export const ngoEventController = {
   getAllCompletionRequests,
     getCompletionRequestHistory,
   getCompletedEventsByNgo,
+  approveEventWithScoring,
 };

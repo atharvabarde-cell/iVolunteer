@@ -119,4 +119,12 @@ eventRouter.get(
   ngoEventController.getCompletedEventsByNgo
 );
 
+eventRouter.put(
+  "/admin/approve-with-scoring/:eventId",
+  authMiddleware,
+  authorizeRole("admin"),
+  ngoEventController.approveEventWithScoring
+);
+
+
 export default eventRouter;

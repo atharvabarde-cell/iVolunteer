@@ -12,7 +12,6 @@ const createEvent = async (data, organizationId, organizationName) => {
     duration,
     category,
     maxParticipants,
-    pointsOffered = 50,
     requirements = [],
     sponsorshipRequired,
     sponsorshipAmount,
@@ -32,7 +31,6 @@ const createEvent = async (data, organizationId, organizationName) => {
     duration,
     category,
     maxParticipants,
-    pointsOffered,
     requirements,
     sponsorshipRequired,
     sponsorshipAmount,
@@ -374,14 +372,16 @@ const reviewEventCompletion = async (eventId, decision) => {
     event.completionStatus = "accepted"; // admin approved
     event.eventStatus = "completed"; // lifecycle field
 
+     const totalPoints = event.scoringRule?.totalPoints || 0;
+
     // Award points to participants
-    for (const userId of event.participants) {
-      const user = await mongoose.model("User").findById(userId);
-      if (user) {
-        user.points += event.pointsOffered;
-        await user.save();
-      }
+   for (const userId of event.participants) {
+    const user = await mongoose.model("User").findById(userId);
+    if (user) {
+      user.points += totalPoints;
+      await user.save();
     }
+  }
   } else if (decision === "rejected") {
     event.completionStatus = "rejected"; // admin rejected
     event.eventStatus = "ongoing"; // back to ongoing
@@ -424,6 +424,63 @@ const getCompletedEventsByNgo = async (ngoId) => {
   return events;
 };
 
+const approveEventWithScoring = async (
+  eventId,
+  baseCategoryOrPoints, // either category key (preferred) or numeric basePoints
+  difficultyKeyOrMultiplier,
+  hoursWorked // number
+) => {
+  const event = await Event.findById(eventId);
+  if (!event) throw new ApiError(404, "Event not found");
+
+  // Base Event Points mapping (A)
+  const basePointsMap = {
+    small: 50,
+    medium: 100,
+    highImpact: 150,
+    longTerm: 200,
+  };
+
+  // Difficulty multiplier mapping (B)
+  const difficultyMap = {
+    easy: 1.0,
+    moderate: 1.3,
+    challenging: 1.7,
+    extreme: 2.0,
+  };
+
+  // Determine basePoints (accept numeric or category key)
+  let basePoints = typeof baseCategoryOrPoints === "number"
+    ? baseCategoryOrPoints
+    : basePointsMap[baseCategoryOrPoints] ?? 50;
+
+  // Determine difficulty multiplier (accept numeric or key)
+  const difficultyMultiplier = typeof difficultyKeyOrMultiplier === "number"
+    ? difficultyKeyOrMultiplier
+    : difficultyMap[difficultyKeyOrMultiplier] ?? 1.0;
+
+  const hours = Number(hoursWorked) || 0;
+  const durationFactor = 1 + hours / 10; // DF = 1 + hours/10
+
+  const totalPoints = Math.round(basePoints * difficultyMultiplier * durationFactor);
+
+  event.status = "approved";
+  event.scoringRule = {
+    baseCategoryOrPoints,
+    difficulty: difficultyKeyOrMultiplier,
+    hoursWorked: hours,
+    totalPoints,
+  };
+
+  // Keep pointsOffered for compatibility with older code paths that used it
+  event.pointsOffered = totalPoints;
+
+  await event.save();
+  return event;
+};
+
+
+
 export const ngoEventService = {
   createEvent,
   getEventsByOrganization,
@@ -444,4 +501,6 @@ export const ngoEventService = {
 
   getCompletionRequestHistory,
   getCompletedEventsByNgo,
+
+  approveEventWithScoring,
 };
