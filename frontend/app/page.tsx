@@ -28,6 +28,7 @@ import PointsDisplay from "@/components/PointsDisplay.";
 import { motion } from "framer-motion";
 import PendingRequestsCTA from "@/components/PendingRequestsCTA";
 import Donationreqcta from "@/components/Donationreqcta";
+import { PendingParticipationRequests } from "@/components/PendingParticipationRequests";
 
 // Dashboard components
 function AdminDashboard() {
@@ -58,6 +59,7 @@ function NGODashboard() {
     <section className="bg-[#f4f7fb] h-full min-w-[350px]">
       <Header />
       <Ngoanalytics />
+      <PendingParticipationRequests />
       <div className="flex md:flex-row flex-col w-full md:justify-around justify-center items-center">
         <Eventbutton />
         <Donationeventbutton />

@@ -126,6 +126,27 @@ const participateInEvent = asyncHandler(async (req, res) => {
   });
 });
 
+// Request participation in an event
+const requestParticipation = asyncHandler(async (req, res) => {
+  const eventId = req.params.eventId;
+  const userId = req.user._id;
+  const { message } = req.body;
+
+  const { participationRequestService } = await import("../services/participationRequest.service.js");
+  
+  const participationRequest = await participationRequestService.createParticipationRequest(
+    eventId,
+    userId,
+    message
+  );
+  
+  res.status(201).json({
+    success: true,
+    message: "Participation request submitted successfully!",
+    participationRequest
+  });
+});
+
 // Leave an event
 const leaveEvent = asyncHandler(async (req, res) => {
   const eventId = req.params.eventId;
@@ -349,6 +370,7 @@ export const ngoEventController = {
   getSponsorshipEvents,
   getEventById,
   participateInEvent,
+  requestParticipation,
   leaveEvent,
   getUserParticipatedEvents,
   migrateParticipantsData,

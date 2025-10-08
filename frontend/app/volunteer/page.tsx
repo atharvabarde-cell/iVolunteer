@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useNGO } from "@/contexts/ngo-context";
+import { useParticipationRequest } from "@/contexts/participation-request-context";
 import {
   Calendar,
   MapPin,
@@ -18,12 +19,18 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
+import { ParticipationRequestBanner } from "@/components/ParticipationRequestBanner";
 
 const AvailableEventsPage: React.FC = () => {
   const router = useRouter();
   const { user } = useAuth();
-  const { events, fetchAvailableEvents, loading, error, participateInEvent } =
-    useNGO();
+  const { events, fetchAvailableEvents, loading, error } = useNGO();
+  const { 
+    createParticipationRequest, 
+    hasRequestedParticipation, 
+    getPendingRequestForEvent,
+    userRequests 
+  } = useParticipationRequest();
   const [participating, setParticipating] = useState<{
     [key: string]: boolean;
   }>({});
@@ -69,14 +76,13 @@ const AvailableEventsPage: React.FC = () => {
     setParticipating((prev) => ({ ...prev, [eventId]: true }));
 
     try {
-      const success = await participateInEvent(eventId);
+      const success = await createParticipationRequest(eventId);
       if (success) {
-        setParticipated((prev) => ({ ...prev, [eventId]: true }));
-        // Refresh events to get updated participant counts
-        setTimeout(() => fetchAvailableEvents(), 500);
+        // Remove from participating state but don't add to participated
+        // since it's now a request, not direct participation
       }
     } catch (err) {
-      console.error("Participation failed:", err);
+      console.error("Participation request failed:", err);
     } finally {
       setParticipating((prev) => ({ ...prev, [eventId]: false }));
     }
@@ -209,6 +215,9 @@ const AvailableEventsPage: React.FC = () => {
               various events and activities.
             </p>
           </div>
+
+          {/* Participation Request Banner */}
+          <ParticipationRequestBanner />
 
           {/* Tab Navigation */}
           <div className="flex justify-center mb-8">
@@ -469,43 +478,68 @@ const AvailableEventsPage: React.FC = () => {
 
                   {/* Action Button */}
                   <div className="px-6 pb-6">
-                    {userParticipating ? (
-                      <button
-                        disabled
-                        className="w-full bg-green-100 text-green-700 py-2 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Already Participating
-                      </button>
-                    ) : eventFull ? (
-                      <button
-                        disabled
-                        className="w-full bg-red-100 text-red-700 py-2 px-4 rounded-lg font-medium text-sm cursor-not-allowed"
-                      >
-                        Event Full
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          event._id && handleParticipate(event._id);
-                        }}
-                        disabled={!event._id || participating[event._id]}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
-                      >
-                        {event._id && participating[event._id] ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Joining...
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Participate
-                          </>
-                        )}
-                      </button>
-                    )}
+                    {(() => {
+                      const hasRequested = hasRequestedParticipation(event._id || "");
+                      const pendingRequest = getPendingRequestForEvent(event._id || "");
+                      
+                      if (userParticipating) {
+                        return (
+                          <button
+                            disabled
+                            className="w-full bg-green-100 text-green-700 py-2 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Already Participating
+                          </button>
+                        );
+                      }
+                      
+                      if (hasRequested && pendingRequest) {
+                        return (
+                          <button
+                            disabled
+                            className="w-full bg-yellow-100 text-yellow-700 py-2 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Requested Participation
+                          </button>
+                        );
+                      }
+                      
+                      if (eventFull) {
+                        return (
+                          <button
+                            disabled
+                            className="w-full bg-red-100 text-red-700 py-2 px-4 rounded-lg font-medium text-sm cursor-not-allowed"
+                          >
+                            Event Full
+                          </button>
+                        );
+                      }
+                      
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            event._id && handleParticipate(event._id);
+                          }}
+                          disabled={!event._id || participating[event._id]}
+                          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                          {event._id && participating[event._id] ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Requesting...
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Request Participation
+                            </>
+                          )}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               );

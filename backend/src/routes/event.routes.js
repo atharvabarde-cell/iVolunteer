@@ -98,6 +98,7 @@ eventRouter.delete("/:eventId", authMiddleware, ngoEventController.deleteEvent);
 
 // Participation routes
 eventRouter.post("/participate/:eventId", authMiddleware, ngoEventController.participateInEvent);
+eventRouter.post("/request-participation/:eventId", authMiddleware, ngoEventController.requestParticipation);
 eventRouter.delete("/leave/:eventId", authMiddleware, ngoEventController.leaveEvent);
 eventRouter.get("/my-events", authMiddleware, ngoEventController.getUserParticipatedEvents);
 

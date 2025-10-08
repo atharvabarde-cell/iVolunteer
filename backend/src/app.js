@@ -26,6 +26,7 @@ import donationEventRouter from "./routes/donationEvent.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
 import pointsBadgeRouter from "./routes/pointsBadge.routes.js";
 import groupRouter from "./routes/group.routes.js";
+import participationRequestRouter from "./routes/participationRequest.routes.js";
 
 const app = express();
 
@@ -80,6 +81,9 @@ app.use("/api/v1/points-badge", globalRateLimiting, pointsBadgeRouter);
 
 // Group routes
 app.use("/api/v1/groups", globalRateLimiting, groupRouter);
+
+// Participation request routes
+app.use("/api/v1/participation-requests", globalRateLimiting, participationRequestRouter);
 
 app.use(errorHandler);
 app.use(notFoundHandler);

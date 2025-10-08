@@ -25,6 +25,8 @@ import { Plus, MapPin, Calendar, Clock, Users, Eye, AlertCircle } from "lucide-r
 import { useAuth } from "@/contexts/auth-context"
 import { useEvents } from "@/contexts/events-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PendingParticipationRequests } from "@/components/PendingParticipationRequests"
+import { ParticipationRequestDebug } from "@/components/ParticipationRequestDebug"
 
 export default function NGODashboard() {
   const { user } = useAuth()
@@ -379,6 +381,12 @@ export default function NGODashboard() {
               )}
             </TabsContent>
           </Tabs>
+
+          {/* Participation Requests Section */}
+          <div className="mt-8">
+            <ParticipationRequestDebug />
+            <PendingParticipationRequests />
+          </div>
         </div>
       </main>
 

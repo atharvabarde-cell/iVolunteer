@@ -12,6 +12,7 @@ import {
   Users,
   Clock,
   CheckCircle,
+  XCircle,
   UserPlus,
   ArrowLeft,
   Award,
@@ -26,6 +27,7 @@ import {
   Video,
 } from "lucide-react";
 import { Header } from "@/components/header";
+import { useParticipationRequest } from "@/contexts/participation-request-context";
 
 const EventDetailsPage: React.FC = () => {
   const params = useParams();
@@ -33,7 +35,13 @@ const EventDetailsPage: React.FC = () => {
   const { user } = useAuth();
   const eventId = params.eventId as string;
   
-  const { events, fetchAvailableEvents, loading: contextLoading, error: contextError, participateInEvent, leaveEvent } = useNGO();
+  const { events, fetchAvailableEvents, loading: contextLoading, error: contextError } = useNGO();
+  const { 
+    createParticipationRequest, 
+    hasRequestedParticipation, 
+    getPendingRequestForEvent,
+    cancelRequest 
+  } = useParticipationRequest();
   const [event, setEvent] = useState<any>(null);
   const [participating, setParticipating] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -123,32 +131,34 @@ const EventDetailsPage: React.FC = () => {
     
     setParticipating(true);
     try {
-      const success = await participateInEvent(event._id);
+      const success = await createParticipationRequest(event._id);
       if (success) {
-        setParticipated(true);
-        // Refresh event details to get updated data with NGO details
+        // Don't set participated since it's a request, not direct participation
+        // Refresh event details to get updated data
         setTimeout(() => fetchEventDetails(), 500);
       }
     } catch (err) {
-      console.error("Participation failed:", err);
+      console.error("Participation request failed:", err);
     } finally {
       setParticipating(false);
     }
   };
 
-  const handleLeaveEvent = async () => {
+  const handleCancelRequest = async () => {
     if (!event?._id) return;
+    
+    const pendingRequest = getPendingRequestForEvent(event._id);
+    if (!pendingRequest) return;
     
     setLeaving(true);
     try {
-      const success = await leaveEvent(event._id);
+      const success = await cancelRequest(pendingRequest._id);
       if (success) {
-        setParticipated(false);
-        // Refresh event details to get updated data with NGO details
+        // Refresh event details to get updated data
         setTimeout(() => fetchEventDetails(), 500);
       }
     } catch (err) {
-      console.error("Leave event failed:", err);
+      console.error("Cancel request failed:", err);
     } finally {
       setLeaving(false);
     }
@@ -654,56 +664,86 @@ const EventDetailsPage: React.FC = () => {
                       Event creators cannot participate in their own events
                     </p>
                   </div>
-                ) : participated ? (
-                  <div className="space-y-3">
+                ) : (() => {
+                  const hasRequested = hasRequestedParticipation(event?._id || "");
+                  const pendingRequest = getPendingRequestForEvent(event?._id || "");
+                  
+                  if (participated) {
+                    return (
+                      <div className="space-y-3">
+                        <button
+                          disabled
+                          className="w-full bg-green-100 text-green-700 py-3 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Already Participating
+                        </button>
+                      </div>
+                    );
+                  }
+                  
+                  if (hasRequested && pendingRequest) {
+                    return (
+                      <div className="space-y-3">
+                        <button
+                          disabled
+                          className="w-full bg-yellow-100 text-yellow-700 py-3 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                        >
+                          <Clock className="h-4 w-4 mr-2" />
+                          Requested Participation
+                        </button>
+                        <button
+                          onClick={handleCancelRequest}
+                          disabled={leaving}
+                          className="w-full bg-red-100 text-red-700 py-2 px-4 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm disabled:bg-red-200 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                          {leaving ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-700 mr-2"></div>
+                              Cancelling...
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancel Request
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  }
+                  
+                  if (eventFull) {
+                    return (
+                      <button
+                        disabled
+                        className="w-full bg-red-100 text-red-700 py-3 px-4 rounded-lg font-medium text-sm cursor-not-allowed"
+                      >
+                        Event Full
+                      </button>
+                    );
+                  }
+                  
+                  return (
                     <button
-                      disabled
-                      className="w-full bg-green-100 text-green-700 py-3 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                      onClick={handleParticipate}
+                      disabled={participating}
+                      className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
                     >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Already Participating
-                    </button>
-                    <button
-                      onClick={handleLeaveEvent}
-                      disabled={leaving}
-                      className="w-full bg-red-100 text-red-700 py-2 px-4 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm disabled:bg-red-200 disabled:cursor-not-allowed flex items-center justify-center"
-                    >
-                      {leaving ? (
+                      {participating ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-700 mr-2"></div>
-                          Leaving...
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Requesting...
                         </>
                       ) : (
-                        'Leave Event'
+                        <>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Request Participation
+                        </>
                       )}
                     </button>
-                  </div>
-                ) : eventFull ? (
-                  <button
-                    disabled
-                    className="w-full bg-red-100 text-red-700 py-3 px-4 rounded-lg font-medium text-sm cursor-not-allowed"
-                  >
-                    Event Full
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleParticipate}
-                    disabled={participating}
-                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
-                  >
-                    {participating ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Joining...
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Join Event
-                      </>
-                    )}
-                  </button>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Event Status */}
