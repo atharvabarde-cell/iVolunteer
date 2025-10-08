@@ -1,17 +1,44 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParticipationRequest } from "@/contexts/participation-request-context";
-import { Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, X } from "lucide-react";
 
 export const ParticipationRequestBanner: React.FC = () => {
   const { userRequests } = useParticipationRequest();
+  const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
+
+  // Load dismissed banners from localStorage on component mount
+  useEffect(() => {
+    const stored = localStorage.getItem('dismissedParticipationBanners');
+    if (stored) {
+      try {
+        const dismissedIds = JSON.parse(stored);
+        setDismissedBanners(new Set(dismissedIds));
+      } catch (error) {
+        console.error('Error loading dismissed banners:', error);
+      }
+    }
+  }, []);
 
   const pendingRequests = userRequests.filter(req => req.status === "pending");
   const recentStatusUpdates = userRequests.filter(req => 
     req.status !== "pending" && 
-    new Date(req.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+    new Date(req.updatedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000) && // Last 24 hours
+    !dismissedBanners.has(req._id) // Not dismissed
   );
+
+  const dismissBanner = (requestId: string) => {
+    const newDismissed = new Set([...dismissedBanners, requestId]);
+    setDismissedBanners(newDismissed);
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem('dismissedParticipationBanners', JSON.stringify(Array.from(newDismissed)));
+    } catch (error) {
+      console.error('Error saving dismissed banners:', error);
+    }
+  };
 
   if (pendingRequests.length === 0 && recentStatusUpdates.length === 0) {
     return null;
@@ -88,6 +115,17 @@ export const ParticipationRequestBanner: React.FC = () => {
                 )}
               </div>
             </div>
+            <button
+              onClick={() => dismissBanner(request._id)}
+              className={`p-1 rounded-full hover:bg-opacity-20 transition-colors ${
+                request.status === "accepted" 
+                  ? "text-green-600 hover:bg-green-600" 
+                  : "text-red-600 hover:bg-red-600"
+              }`}
+              title="Dismiss notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       ))}

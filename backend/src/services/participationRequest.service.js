@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { ParticipationRequest } from "../models/ParticipationRequest.js";
 import { Event } from "../models/Event.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -5,6 +6,20 @@ import { ApiError } from "../utils/ApiError.js";
 // Create a participation request
 const createParticipationRequest = async (eventId, userId, message = null) => {
   try {
+    // Validate input parameters
+    if (!eventId || !userId) {
+      throw new ApiError(400, "Event ID and User ID are required");
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      throw new ApiError(400, "Invalid event ID format");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new ApiError(400, "Invalid user ID format");
+    }
+
     // Get event details
     const event = await Event.findById(eventId);
     if (!event) {
@@ -36,14 +51,38 @@ const createParticipationRequest = async (eventId, userId, message = null) => {
     }
 
     // Check for existing pending request
-    const existingRequest = await ParticipationRequest.findOne({
+    const existingPendingRequest = await ParticipationRequest.findOne({
       eventId,
       userId,
       status: 'pending'
     });
 
-    if (existingRequest) {
+    if (existingPendingRequest) {
       throw new ApiError(400, "You already have a pending participation request for this event");
+    }
+
+    // Check for existing rejected request
+    const existingRejectedRequest = await ParticipationRequest.findOne({
+      eventId,
+      userId,
+      status: 'rejected'
+    });
+
+    if (existingRejectedRequest) {
+      // Update the existing rejected request to pending status with new message
+      existingRejectedRequest.status = 'pending';
+      existingRejectedRequest.message = message || null;
+      existingRejectedRequest.rejectionReason = undefined; // Clear previous rejection reason
+      
+      await existingRejectedRequest.save();
+
+      // Populate the request before returning
+      await existingRejectedRequest.populate([
+        { path: 'eventId', select: 'title date location organization' },
+        { path: 'userId', select: 'name email' }
+      ]);
+
+      return existingRejectedRequest;
     }
 
     // Create the participation request

@@ -25,9 +25,19 @@ import {
   Mail,
   MapPinIcon,
   Video,
+  AlertCircle,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { useParticipationRequest } from "@/contexts/participation-request-context";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 const EventDetailsPage: React.FC = () => {
   const params = useParams();
@@ -40,6 +50,8 @@ const EventDetailsPage: React.FC = () => {
     createParticipationRequest, 
     hasRequestedParticipation, 
     getPendingRequestForEvent,
+    getRejectedRequestForEvent,
+    hasRejectedRequest,
     cancelRequest 
   } = useParticipationRequest();
   const [event, setEvent] = useState<any>(null);
@@ -48,6 +60,7 @@ const EventDetailsPage: React.FC = () => {
   const [participated, setParticipated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
 
   const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
 
@@ -667,6 +680,8 @@ const EventDetailsPage: React.FC = () => {
                 ) : (() => {
                   const hasRequested = hasRequestedParticipation(event?._id || "");
                   const pendingRequest = getPendingRequestForEvent(event?._id || "");
+                  const rejectedRequest = getRejectedRequestForEvent(event?._id || "");
+                  const isRejected = hasRejectedRequest(event?._id || "");
                   
                   if (participated) {
                     return (
@@ -677,6 +692,55 @@ const EventDetailsPage: React.FC = () => {
                         >
                           <CheckCircle className="h-4 w-4 mr-2" />
                           Already Participating
+                        </button>
+                      </div>
+                    );
+                  }
+                  
+                  if (isRejected && rejectedRequest) {
+                    return (
+                      <div className="space-y-3">
+                        <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
+                          <DialogTrigger asChild>
+                            <button
+                              className="w-full bg-red-100 text-red-700 py-3 px-4 rounded-lg font-medium text-sm hover:bg-red-200 transition-colors duration-200 flex items-center justify-center"
+                            >
+                              <AlertCircle className="h-4 w-4 mr-2" />
+                              Participation Rejected
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Participation Request Rejected</DialogTitle>
+                              <DialogDescription>
+                                Your participation request for this event was rejected.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="font-medium text-gray-900 mb-2">Rejection Reason:</h4>
+                                <div className="bg-gray-50 p-3 rounded-lg">
+                                  <p className="text-gray-700 text-sm">
+                                    {rejectedRequest.rejectionReason || "No specific reason provided."}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex justify-end">
+                                <DialogClose asChild>
+                                  <button className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                                    Close
+                                  </button>
+                                </DialogClose>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <button
+                          disabled
+                          className="w-full bg-gray-100 text-gray-600 py-2 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Not Eligible for This Event
                         </button>
                       </div>
                     );

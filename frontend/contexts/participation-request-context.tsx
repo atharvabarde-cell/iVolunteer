@@ -59,6 +59,8 @@ interface ParticipationRequestContextType {
   // Helper functions
   hasRequestedParticipation: (eventId: string) => boolean;
   getPendingRequestForEvent: (eventId: string) => ParticipationRequest | null;
+  getRejectedRequestForEvent: (eventId: string) => ParticipationRequest | null;
+  hasRejectedRequest: (eventId: string) => boolean;
 }
 
 const ParticipationRequestContext = createContext<ParticipationRequestContextType | undefined>(undefined);
@@ -348,6 +350,20 @@ export const ParticipationRequestProvider: React.FC<{ children: React.ReactNode 
     ) || null;
   };
 
+  // Helper function to get rejected request for an event
+  const getRejectedRequestForEvent = (eventId: string): ParticipationRequest | null => {
+    return userRequests.find(req => 
+      req.eventId._id === eventId && req.status === "rejected"
+    ) || null;
+  };
+
+  // Helper function to check if user has a rejected request for an event
+  const hasRejectedRequest = (eventId: string): boolean => {
+    return userRequests.some(req => 
+      req.eventId._id === eventId && req.status === "rejected"
+    );
+  };
+
   // Auto-fetch data when user changes
   useEffect(() => {
     if (user) {
@@ -375,6 +391,8 @@ export const ParticipationRequestProvider: React.FC<{ children: React.ReactNode 
     fetchStats,
     hasRequestedParticipation,
     getPendingRequestForEvent,
+    getRejectedRequestForEvent,
+    hasRejectedRequest,
   };
 
   return (

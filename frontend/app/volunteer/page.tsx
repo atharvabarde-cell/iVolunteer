@@ -16,6 +16,7 @@ import {
   Building,
   Globe,
   RefreshCcw,
+  XCircle,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const AvailableEventsPage: React.FC = () => {
     createParticipationRequest, 
     hasRequestedParticipation, 
     getPendingRequestForEvent,
+    hasRejectedRequest,
     userRequests 
   } = useParticipationRequest();
   const [participating, setParticipating] = useState<{
@@ -481,6 +483,24 @@ const AvailableEventsPage: React.FC = () => {
                     {(() => {
                       const hasRequested = hasRequestedParticipation(event._id || "");
                       const pendingRequest = getPendingRequestForEvent(event._id || "");
+                      const isRejected = hasRejectedRequest(event._id || "");
+                      
+                      // Check if current user is the event creator
+                      const isEventCreator = user && event.organizationId && (
+                        (typeof event.organizationId === 'object' ? event.organizationId._id : event.organizationId) === user._id
+                      );
+                      
+                      if (isEventCreator) {
+                        return (
+                          <button
+                            disabled
+                            className="w-full bg-gray-100 text-gray-600 py-2 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                          >
+                            <Building className="h-4 w-4 mr-2" />
+                            You Created This Event
+                          </button>
+                        );
+                      }
                       
                       if (userParticipating) {
                         return (
@@ -490,6 +510,18 @@ const AvailableEventsPage: React.FC = () => {
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Already Participating
+                          </button>
+                        );
+                      }
+                      
+                      if (isRejected) {
+                        return (
+                          <button
+                            disabled
+                            className="w-full bg-gray-100 text-gray-600 py-2 px-4 rounded-lg font-medium text-sm cursor-not-allowed flex items-center justify-center"
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Not Eligible for This Event
                           </button>
                         );
                       }

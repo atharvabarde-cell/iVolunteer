@@ -5,8 +5,24 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 // Create a participation request
 const createParticipationRequest = asyncHandler(async (req, res) => {
   const eventId = req.params.eventId;
-  const userId = req.user._id;
+  const userId = req.user?._id;
   const { message } = req.body;
+
+  // Validate eventId parameter
+  if (!eventId) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Event ID is required" 
+    });
+  }
+
+  // Validate user authentication
+  if (!userId) {
+    return res.status(401).json({ 
+      success: false, 
+      message: "User not authenticated" 
+    });
+  }
 
   const participationRequest = await participationRequestService.createParticipationRequest(
     eventId,

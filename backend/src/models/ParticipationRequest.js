@@ -47,8 +47,15 @@ const participationRequestSchema = new mongoose.Schema(
   }
 );
 
-// Composite index to prevent duplicate requests
-participationRequestSchema.index({ eventId: 1, userId: 1 }, { unique: true });
+// Composite index to prevent duplicate requests - explicitly define the index name
+participationRequestSchema.index(
+  { eventId: 1, userId: 1 }, 
+  { 
+    unique: true, 
+    name: "eventId_1_userId_1",
+    background: true 
+  }
+);
 
 // Virtual fields
 participationRequestSchema.virtual('event', {
