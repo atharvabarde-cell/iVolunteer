@@ -91,7 +91,7 @@ const getAllPublishedEvents = async () => {
 // Get approved events that require sponsorship (use a real field)
 const getSponsorshipEvents = async () => {
   return await Event.find({
-    // status: "approved",
+    status: "approved",
     // sponsorshipRequired: true,
     sponsorshipAmount: { $gt: 0 },
   })

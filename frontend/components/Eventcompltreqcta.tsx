@@ -1,38 +1,57 @@
 import Link from "next/link";
 import React from "react";
+import { CheckCircle, ArrowRight } from "lucide-react";
 
-const Eventcompltreqcta = () => {
+const EventCompleteReqCTA = () => {
   return (
-    <div className="w-full bg-gradient-to-r from-indigo-50 to-white py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+    <div className="w-full max-w-7xl mx-auto mb-6 md:p-0 p-6">
+      <Link href="/eventendingreq" passHref>
+        <div className="group relative bg-gradient-to-br from-white to-gray-50/80 rounded-2xl p-6 cursor-pointer overflow-hidden border border-gray-200/50 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 backdrop-blur-sm">
+          
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(74,139,186,0.02)_25%,rgba(74,139,186,0.02)_50%,transparent_50%,transparent_75%,rgba(74,139,186,0.02)_75%)] bg-[length:6px_6px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          
+          {/* Accent Border Animation */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#4A8BBA] to-[#63B3ED] opacity-0 group-hover:opacity-3 transition-opacity duration-300" />
+          
+          {/* Main Content */}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {/* Icon */}
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#4A8BBA] text-white shadow-md transition-all duration-300 group-hover:scale-105">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                
+                {/* Text Content */}
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#4A8BBA] transition-colors duration-300">
+                    Event Completion Requests
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Review pending submissions and manage event completion approvals
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Event Completion Requests</h3>
-                <p className="text-gray-600 mt-1">
-                  Review pending submissions and manage event completion approvals
-                </p>
+              
+              {/* Action Button */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-[#4A8BBA] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  Manage Requests
+                </span>
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#4A8BBA] text-white shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                  <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                </div>
               </div>
             </div>
-            <Link href="/eventendingreq">
-              <button className="w-full lg:w-auto inline-flex items-center justify-center gap-3 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                <span>Manage Requests</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </button>
-            </Link>
           </div>
+
+          {/* Subtle Corner Accent */}
+          <div className="absolute top-0 right-0 w-16 h-16 -translate-y-4 translate-x-4 rounded-full bg-[#4A8BBA] opacity-[0.02] group-hover:opacity-[0.03] transition-opacity duration-500" />
         </div>
-      </div>
+      </Link>
     </div>
   );
 };
 
-export default Eventcompltreqcta;
+export default EventCompleteReqCTA;

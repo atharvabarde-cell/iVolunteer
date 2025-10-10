@@ -169,6 +169,7 @@ const handleApprove = async (
       }>("/v1/donation-event/pending", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("Fetched pending donation events:", res.data.events);
       setPendingDonationEvents(res.data.events);
     } catch (err) {
       console.error("Failed to fetch pending donation events", err);

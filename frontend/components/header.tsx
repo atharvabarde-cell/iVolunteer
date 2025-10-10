@@ -9,6 +9,8 @@ import {
   HeartHandshake,
   DollarSign,
   Calendar,
+  Users,
+  BookOpen,
   Home,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,10 +36,10 @@ export function Header() {
 
   const baseNavItems = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/posts", label: "Posts" },
     { href: "/volunteer", label: "Volunteer", icon: HeartHandshake },
     { href: "/donate", label: "Donate", icon: DollarSign },
-    { href: "/activities", label: "Activities", icon: Calendar },
+    { href: "/posts", label: "Community", icon: Users },
+    { href: "/blogs", label: "Blogs", icon: BookOpen },
   ];
 
   const isActive = (href: string) => {

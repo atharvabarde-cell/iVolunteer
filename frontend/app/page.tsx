@@ -27,29 +27,42 @@ import { motion } from "framer-motion";
 import PendingRequestsCTA from "@/components/PendingRequestsCTA";
 import Donationreqcta from "@/components/Donationreqcta";
 import Eventcompltreqcta from "@/components/Eventcompltreqcta";
-
+import Addblogcta from "@/components/Addblogcta";
+import Manageblogscta from "@/components/Manageblogscta";
 
 // Dashboard components
 function AdminDashboard() {
   return (
-    <section className="bg-[#f4f7fb] h-full w-full min-w-[350px]">
+    <section className=" h-full w-full min-w-[350px] bg-white">
       <Header />
-      <div className="p-6 mt-6">
-        <h1 className="text-4xl font-bold">Admin Dashboard</h1>
-        <p className="text-gray-500 text-xl mt-1">
-          A powerful yet effortless way to manage the iVolunteer platform.
-        </p>
-      </div>
-
       <Adminstats />
 
-      <Donationreqcta />
-      <PendingRequestsCTA />
-      <Eventcompltreqcta/>
+      <div className="flex justify-center  m-6 md:m-0">
+        <div className="max-w-7xl w-full space-y-6">
+          {/* Header Section */}
+          <div className="text-center mb-2 mt-20">
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-3">
+              Quick Actions
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 text-lg max-w-2xl mx-auto">
+              Manage pending requests and review submissions that need your
+              attention
+            </p>
+          </div>
 
-      <div className="mt-16">
-      <Footer />
+          {/* CTA Grid */}
+          <div className="grid md:grid-cols-2 gap-6 mb-3 mt-14">
+            <Donationreqcta />
+            <PendingRequestsCTA />
+          </div>
+        </div>
       </div>
+
+      <Eventcompltreqcta />
+      <Addblogcta/>
+      <Manageblogscta/>
+
+      <Footer />
     </section>
   );
 }
@@ -63,7 +76,7 @@ function NGODashboard() {
         <Eventbutton />
         <Donationeventbutton />
       </div>
-     
+
       <Ngoeventtable />
       <Footer />
     </section>

@@ -12,10 +12,11 @@ import { CorporateProvider } from "@/contexts/corporate-context";
 import { DonationEventProvider } from "@/contexts/donationevents-context";
 import { PointsProvider } from "@/contexts/points-context";
 import { GroupsProvider } from "@/contexts/groups-context";
+import { BlogProvider } from "@/contexts/blog-context";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-      <PointsProvider>
+    <PointsProvider>
       <AuthProvider>
         <UserProvider>
           <AdminProvider>
@@ -24,16 +25,18 @@ export function Providers({ children }: { children: ReactNode }) {
                 <PostProvider>
                   <GroupsProvider>
                     <DonationEventProvider>
-                      {children}
-                      <ToastContainer
-                        position="top-right"
-                        autoClose={3000}
-                        hideProgressBar
-                        closeOnClick
-                        pauseOnHover
-                        draggable
-                        theme="light"
-                      />
+                      <BlogProvider>
+                        {children}
+                        <ToastContainer
+                          position="top-right"
+                          autoClose={3000}
+                          hideProgressBar
+                          closeOnClick
+                          pauseOnHover
+                          draggable
+                          theme="light"
+                        />
+                      </BlogProvider>
                     </DonationEventProvider>
                   </GroupsProvider>
                 </PostProvider>
